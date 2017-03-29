@@ -6,6 +6,7 @@ import cv2
 import random 
 import numpy as np 
 import copy 
+import matplotlib.pyplot as plt 
 
 # Import games
 sys.path.append("Wrapped_Game/")
@@ -18,8 +19,8 @@ Gamma = 0.9
 Learning_rate = 0.001 
 Epsilon = 1 
 Num_replay_memory = 50000
-Num_training = 2000000
-Num_target = 1000
+Num_training = 1000000
+Num_update = 1000
 Num_batch = 32
 
 game_name = 'dot'
@@ -167,6 +168,7 @@ Replay_memory = []
 step = 1
 state = 'Observing'
 score = 0 
+episode = 0
 
 game_state = game.GameState()
 action = np.zeros([Num_action])
@@ -190,6 +192,7 @@ for i in range(Num_replay_memory):
 		print('step: ' + str(step) + ' / '  + 'state: ' + state)
 	step += 1
 
+plt.figure(1)
 while True:
 	if step <= Num_replay_memory + Num_training:
 		# Training 
@@ -205,7 +208,8 @@ while True:
 			# observation_next = np.reshape(observation_next, (1, 80, 80, 3))
 			observation_next = observation_next/255.0
 		else:
-			Q_value = output.eval(feed_dict={x_image: observation})
+			observation_feed = np.reshape(observation, (1, 80, 80, 3))
+			Q_value = output.eval(feed_dict={x_image: observation_feed})
 			action = np.zeros([Num_action])
 			action[np.argmax(Q_value)] = 1.0
 			observation_next, reward, terminal = game_state.frame_step(action)
@@ -230,10 +234,10 @@ while True:
 
 		y_batch = [] 
 
-		# Update target network according to the Num_target value 
-		if step % Num_target == 0:
+		# Update target network according to the Num_update value 
+		if step % Num_update == 0:
 			assign_network_to_target()
-		
+
 		# Get y_prediction 
 		Q_batch = output_target.eval(feed_dict = {x_image: observation_next_batch})
 		for i in range(len(minibatch)):
@@ -244,10 +248,7 @@ while True:
 
 		train_step.run(feed_dict = {action_target: action_batch, y_prediction: y_batch, x_image: observation_batch})
 
-		if step % 100 == 0:
-			print('step: ' + str(step) + ' / '  + 'state: ' + state  + ' / '  + 'epsilon: ' + str(Epsilon) + ' / '  + 'reward: ' + str(reward)) 
-		
-		    # save progress every 10000 iterations
+	    # save progress every 10000 iterations
 		if step % 10000 == 0:
 			saver.save(sess, 'saved_networks/' + game_name)
 			print('Model is saved!!!')
@@ -256,6 +257,24 @@ while True:
 		Epsilon -= 1.0/Num_training
 		observation = observation_next
 		step += 1
+		score += reward 
+
+		if terminal == True:
+			plt.xlabel('Episode')
+			plt.ylabel('Score')
+			plt.grid(True)
+
+			plt.plot(episode, score, hold = True, marker = 'o', ms = 3)
+			plt.draw()
+			plt.pause(0.000001)
+
+			print('step: ' + str(step) + ' / '  + 'state: ' + state  + ' / '  + 'epsilon: ' + str(Epsilon) + ' / '  + 'score: ' + str(score)) 
+
+			score = 0
+			episode += 1
+		
+		if step == Num_replay_memory + Num_training:
+			plt.savefig('./Plot/' + 'DQN' + game_name + '.png')			
 	
 	if step > Num_replay_memory + Num_training:
 		# Testing
