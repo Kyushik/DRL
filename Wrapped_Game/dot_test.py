@@ -6,7 +6,7 @@ import random, pygame, time, sys, copy
 from pygame.locals import *
 
 FPS = 30
-WINDOW_WIDTH = 320
+WINDOW_WIDTH = 240
 WINDOW_HEIGHT = 280
 GAME_BOARD_GAP = 20 
 ############## Automatic setting (later work)
@@ -257,11 +257,11 @@ class GameState:
 							
 	def drawGameBoard(self,difficulty):
 		if difficulty == 'Easy':
-			Game_board_state = [[ 0 ,  0,  0,  0 ,  0,  0,  0 ],\
-								[ 0 ,  1,  0,  0 ,  0,  1,  0 ],\
-								['@',  0,  0, '+',  0,  0, '-'],\
-								[ 0 ,  1,  0,  0 ,  0,  1,  0 ],\
-								[ 0 ,  0,  0,  0 ,  0,  0,  0 ]]
+			Game_board_state = [[ 0,  0,  0 ,  0,  0 ],\
+								[ 0,  0,  0 ,  0,  0 ],\
+								['@', 0, '+',  0, '-'],\
+								[ 0,  0,  0 ,  0,  0 ],\
+								[ 0,  0,  0 ,  0,  0 ]]
 
 
 			# Game_board_state = [[ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, '@', 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],\

@@ -32,7 +32,7 @@ LIGHT_GRAY 	  = ( 80,  80,  80)
 
 bgColor = BLACK
 gameboard_Color = BLACK
-obstacle_Color = DARK_GRAY
+obstacle_Color = LIGHT_GRAY
 text_Color = WHITE
 tile_Color = LIGHT_GRAY
 clicked_tile_Color = RED 
@@ -126,6 +126,7 @@ class GameState:
 		
 		# self.DrawGameBoardState(self.Game_board_state)
 		self.DrawGameBoardState()
+		self.Drawlines()
 
 		if (input[1] == 1) and  ('North' in self.ValidMove_list((self.My_position[0], self.My_position[1]))):
 			self.Game_board_state[self.My_position[1] - 1][self.My_position[0]] = '@'
@@ -245,9 +246,15 @@ class GameState:
 		for i in range(GAME_BOARD_HORIZONTAL+1):		
 			for j in range(GAME_BOARD_VERTICAL+1):
 				pygame.draw.rect(DISPLAYSURF, gameboard_Color, (GAME_BOARD_GAP + i * GAME_BOARD_SIZE, 50 + GAME_BOARD_GAP + j * GAME_BOARD_SIZE, GAME_BOARD_SIZE, GAME_BOARD_SIZE))
+				# pygame.draw.line(DISPLAYSURF, line_Color, (GAME_BOARD_GAP + i * GAME_BOARD_SIZE, GAME_BOARD_GAP + 50),(GAME_BOARD_GAP + i * GAME_BOARD_SIZE, 50 + GAME_BOARD_GAP + GAME_BOARD_VERTICAL * GAME_BOARD_SIZE),2)
+				# pygame.draw.line(DISPLAYSURF, line_Color, (GAME_BOARD_GAP, 50 + GAME_BOARD_GAP + j * GAME_BOARD_SIZE), (GAME_BOARD_GAP + GAME_BOARD_HORIZONTAL * GAME_BOARD_SIZE, 50 + GAME_BOARD_GAP + j * GAME_BOARD_SIZE),2)
+	
+	def Drawlines(self):
+		for i in range(GAME_BOARD_HORIZONTAL+1):		
+			for j in range(GAME_BOARD_VERTICAL+1):
 				pygame.draw.line(DISPLAYSURF, line_Color, (GAME_BOARD_GAP + i * GAME_BOARD_SIZE, GAME_BOARD_GAP + 50),(GAME_BOARD_GAP + i * GAME_BOARD_SIZE, 50 + GAME_BOARD_GAP + GAME_BOARD_VERTICAL * GAME_BOARD_SIZE),2)
 				pygame.draw.line(DISPLAYSURF, line_Color, (GAME_BOARD_GAP, 50 + GAME_BOARD_GAP + j * GAME_BOARD_SIZE), (GAME_BOARD_GAP + GAME_BOARD_HORIZONTAL * GAME_BOARD_SIZE, 50 + GAME_BOARD_GAP + j * GAME_BOARD_SIZE),2)
-
+							
 	def drawGameBoard(self,difficulty):
 		if difficulty == 'Easy':
 			Game_board_state = [[ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],\
@@ -367,9 +374,13 @@ class GameState:
 		return valid_move
 
 	def Get_random_position(self):
-		random_x = random.randint(1,GAME_BOARD_HORIZONTAL-1)
-		random_y = random.randint(1,GAME_BOARD_VERTICAL-1)
-		return [random_x, random_y]
+		while True:
+			random_x = random.randint(1,GAME_BOARD_HORIZONTAL-1)
+			random_y = random.randint(1,GAME_BOARD_VERTICAL-1)
+
+			if self.Game_board_state[random_y][random_x] != 1:
+				return [random_x, random_y]
+				break
 
 if __name__ == '__main__':
 	main()
