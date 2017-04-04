@@ -23,11 +23,11 @@ Learning_rate = 0.00025
 Epsilon = 1 
 Final_epsilon = 0.1 
 
-Num_replay_memory = 20000
+Num_replay_memory = 40000
 Num_start_training = 20000
-Num_training = 200000
-Num_update = 1000
-Num_batch = 128
+Num_training = 300000
+Num_update = 2000
+Num_batch = 32
 
 game_name = 'dot_test'
 
@@ -36,28 +36,28 @@ p = PushBullet(apiKey)
 # Get a list of devices
 devices = p.getDevices()
 
-# # Initialize weights and bias 
-# def weight_variable(shape):
-#     return tf.Variable(xavier_initializer(shape))
-
-# def bias_variable(shape):
-# 	return tf.Variable(xavier_initializer(shape))
-
-# # Xavier Weights initializer
-# def xavier_initializer(shape):
-# 	dim_sum = np.sum(shape)
-# 	if len(shape) == 1:
-# 		dim_sum += 1
-# 	bound = np.sqrt(2.0 / dim_sum)
-# 	return tf.random_uniform(shape, minval=-bound, maxval=bound)
-
+# Initialize weights and bias 
 def weight_variable(shape):
-    initial = tf.truncated_normal(shape, stddev = 0.01)
-    return tf.Variable(initial)
+    return tf.Variable(xavier_initializer(shape))
 
 def bias_variable(shape):
-    initial = tf.constant(0.01, shape = shape)
-    return tf.Variable(initial)
+	return tf.Variable(xavier_initializer(shape))
+
+# Xavier Weights initializer
+def xavier_initializer(shape):
+	dim_sum = np.sum(shape)
+	if len(shape) == 1:
+		dim_sum += 1
+	bound = np.sqrt(2.0 / dim_sum)
+	return tf.random_uniform(shape, minval=-bound, maxval=bound)
+
+# def weight_variable(shape):
+#     initial = tf.truncated_normal(shape, stddev = 0.01)
+#     return tf.Variable(initial)
+
+# def bias_variable(shape):
+#     initial = tf.constant(0.01, shape = shape)
+#     return tf.Variable(initial)
 
 # Convolution and pooling
 def conv2d(x,w, stride):
@@ -97,20 +97,20 @@ def assign_network_to_target():
 x_image = tf.placeholder(tf.float32, shape = [None, 80, 80, 3])
 
 # Convolution variables 
-w_conv1 = weight_variable([8,8,3,16])
-b_conv1 = bias_variable([16])
+w_conv1 = weight_variable([8,8,3,32])
+b_conv1 = bias_variable([32])
 
-w_conv2 = weight_variable([4,4,16,32])
-b_conv2 = bias_variable([32])
+w_conv2 = weight_variable([4,4,32,64])
+b_conv2 = bias_variable([64])
 
-w_conv3 = weight_variable([3,3,32,64])
-b_conv3 = bias_variable([64])
+w_conv3 = weight_variable([3,3,64,128])
+b_conv3 = bias_variable([128])
 
 # Densely connect layer variables 
-w_fc1 = weight_variable([10*10*64, 512])
-b_fc1 = bias_variable([512])
+w_fc1 = weight_variable([10*10*128, 1024])
+b_fc1 = bias_variable([1024])
 
-w_fc2 = weight_variable([512, 256])
+w_fc2 = weight_variable([1024, 256])
 b_fc2 = bias_variable([256])
 
 w_fc3 = weight_variable([256, Num_action])
@@ -127,27 +127,27 @@ h_conv2 = tf.nn.relu(conv2d(h_conv1, w_conv2, 2) + b_conv2)
 h_conv3 = tf.nn.relu(conv2d(h_conv2, w_conv3, 1) + b_conv3)
 # h_pool3 = max_pool_2x2(h_conv3)
 
-h_pool3_flat = tf.reshape(h_conv3, [-1, 10*10*64])
+h_pool3_flat = tf.reshape(h_conv3, [-1, 10*10*128])
 h_fc1 = tf.nn.relu(tf.matmul(h_pool3_flat, w_fc1)+b_fc1)
 h_fc2 = tf.nn.relu(tf.matmul(h_fc1, w_fc2)+b_fc2)
 
 output = tf.matmul(h_fc2, w_fc3) + b_fc3
 
 # Convolution variables target
-w_conv1_target = weight_variable([8,8,3,16])
-b_conv1_target = bias_variable([16])
+w_conv1_target = weight_variable([8,8,3,32])
+b_conv1_target = bias_variable([32])
 
-w_conv2_target = weight_variable([4,4,16,32])
-b_conv2_target = bias_variable([32])
+w_conv2_target = weight_variable([4,4,32,64])
+b_conv2_target = bias_variable([64])
 
-w_conv3_target = weight_variable([3,3,32,64])
-b_conv3_target = bias_variable([64])
+w_conv3_target = weight_variable([3,3,64,128])
+b_conv3_target = bias_variable([128])
 
 # Densely connect layer variables target
-w_fc1_target = weight_variable([10*10*64, 512])
-b_fc1_target = bias_variable([512])
+w_fc1_target = weight_variable([10*10*128, 1024])
+b_fc1_target = bias_variable([1024])
 
-w_fc2_target = weight_variable([512, 256])
+w_fc2_target = weight_variable([1024, 256])
 b_fc2_target = bias_variable([256])
 
 w_fc3_target = weight_variable([256, Num_action])
@@ -163,7 +163,7 @@ h_conv2_target = tf.nn.relu(conv2d(h_conv1_target, w_conv2_target, 2) + b_conv2_
 h_conv3_target = tf.nn.relu(conv2d(h_conv2_target, w_conv3_target, 1) + b_conv3_target)
 # h_pool3_target = max_pool_2x2(h_conv3_target)
 
-h_pool3_flat_target = tf.reshape(h_conv3_target, [-1, 10*10*64])
+h_pool3_flat_target = tf.reshape(h_conv3_target, [-1, 10*10*128])
 h_fc1_target = tf.nn.relu(tf.matmul(h_pool3_flat_target, w_fc1_target)+b_fc1_target)
 h_fc2_target = tf.nn.relu(tf.matmul(h_fc1_target, w_fc2_target)+b_fc2_target)
 
@@ -173,7 +173,7 @@ output_target = tf.matmul(h_fc2_target, w_fc3_target) + b_fc3_target
 action_target = tf.placeholder(tf.float32, shape = [None, Num_action])
 y_prediction = tf.placeholder(tf.float32, shape = [None])
 
-y_target = tf.reduce_sum(tf.mul(output, action_target), reduction_indices = 1)
+y_target = tf.reduce_sum(tf.multiply(output, action_target), reduction_indices = 1)
 Loss = tf.reduce_mean(tf.square(y_prediction - y_target))
 train_step = tf.train.AdamOptimizer(Learning_rate).minimize(Loss)
 
