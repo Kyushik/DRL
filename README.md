@@ -27,6 +27,16 @@ This repository is the codes for `Deep Reinforcement Learning`
 <br>Original tetris game code is from [invent with pygame](http://inventwithpython.com/pygame)
 <br>Wrapped version of game code is from [github of asrivat1](https://github.com/asrivat1/DeepLearningVideoGames)
 
+**Dot**
+<br>I made this game to evaluate my DQN code. 
+<br>Rule is very simple. Blue square is agent, Red square is enemy(- reward), Green diamond is food(+ reward)
+<br>So blue square needs to evade red square and get the green diamond. 
+<br>You can change the difficulty and maps in the code. 
+
+**Dot mini**
+<br> This is simple version of Dot. 
+
+
 ---
 ## Deep Q Network
 
