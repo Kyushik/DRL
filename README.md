@@ -2,8 +2,8 @@
 
 ## Introduction
 This repository is the codes for `Deep Reinforcement Learning`
-<br> I verified my codes with games. The games are made with `pygame`. I wrote some of the codes and others are from other githubs. 
-<br> I wrote the code as follows. 
+<br> I verified my codes with games. The games are made with `pygame`. I made some of the game codes and others are from other githubs. 
+<br> I set up the DQN code as follows. 
 * Deep Q Network
 * Double Deep Q Network
 
@@ -103,5 +103,7 @@ I studied `Double Deep Q Network` with the paper [Deep Reinforcement Learning wi
 <p align= "center">
   <img src="./Plot/DDQN dot_test.png" width="500" alt="Combined Image" />
 </p>
+
+This result shows slightly better performance than DQN algorithm.
 
 
