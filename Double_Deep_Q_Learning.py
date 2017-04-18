@@ -12,9 +12,15 @@ from pushbullet.pushbullet import PushBullet
 
 # Import games
 sys.path.append("Wrapped_Game/")
-import dot
-import dot_test as game 
-import tetris 
+
+# Action Num
+# pong = 3
+# dot, dot_test = 4
+# tetris = 5
+import pong as game
+import dot  
+import dot_test 
+import tetris   
 
 # Parameter setting 
 Num_action = 4
@@ -25,7 +31,7 @@ Final_epsilon = 0.1
 
 Num_replay_memory = 40000
 Num_start_training = 20000
-Num_training = 300000
+Num_training = 200000
 Num_update = 2000
 Num_batch = 32
 Num_test = 50000
