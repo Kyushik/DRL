@@ -52,6 +52,7 @@ class GameState:
         self.bar1_score, self.bar2_score = 0,0
         self.speed_x, self.speed_y = 9., 9.
         self.serve = 0
+        self.count = 0
         
     def terminate():
         pygame.quit()
@@ -136,6 +137,7 @@ class GameState:
                 #     self.speed_y = -9.9
                 
                 reward = HIT_REWARD
+                self.count += 1
 
         if self.circle_x >= self.bar2_x - 15.:
             if self.circle_y >= self.bar2_y - bar_enemy_size/2 and self.circle_y <= self.bar2_y + bar_enemy_size/2:
@@ -156,9 +158,12 @@ class GameState:
                 #     self.speed_y = 9.9
                 # elif self.speed_y < -9.9:
                 #     self.speed_y = -9.9
+                self.count += 1
 
         # print('speedx: ' + str(self.speed_x))
         # print('speedy: ' + str(self.speed_y))
+        terminal = False
+
         # scoring
         if self.circle_x < 5.:
             self.bar2_score += 1
@@ -172,6 +177,8 @@ class GameState:
             elif self.serve == 1:
                 self.speed_y = initial_ball_speed
                 self.serve = 0
+            terminal = True
+            self.count = 0
 
         elif self.circle_x > 620.:
             self.bar1_score += 1
@@ -185,6 +192,8 @@ class GameState:
             elif self.serve == 1:
                 self.speed_y = initial_ball_speed
                 self.serve = 0
+            terminal = True
+            self.count = 0
 
         # collisions on sides
         if self.circle_y <= 10.:
@@ -201,11 +210,15 @@ class GameState:
 
         pygame.display.update()
 
-        terminal = False
-        if max(self.bar1_score, self.bar2_score) >= 20:
+        if max(self.bar1_score, self.bar2_score) >= 10:
             self.bar1_score = 0
             self.bar2_score = 0
             terminal = True
+            self.count = 0
+        
+        if self.count == 10:
+            terminal = True 
+            self.count = 0
 
         return image_data, reward, terminal
 

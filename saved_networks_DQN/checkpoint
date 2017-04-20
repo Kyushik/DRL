@@ -1,2 +1,2 @@
-model_checkpoint_path: "dot_test"
-all_model_checkpoint_paths: "dot_test"
+model_checkpoint_path: "dot"
+all_model_checkpoint_paths: "dot"
