@@ -23,6 +23,37 @@ This repository is the codes for `Deep Reinforcement Learning`
 * Memory: 8GB
 
 ---
+## Implementation
+1. Change the as game to the game that you want to implement
+```
+import pong as game
+import dot  
+import dot_test 
+import tetris 
+```
+
+2. Choose the number of action of the game
+```
+#Action Num
+#pong = 3
+#dot, dot_test = 4
+#tetris = 5
+
+Num_action = 3
+```
+3. Set the name of the game to save the variables
+```
+game_name = 'pong'
+```
+
+4. Please check that you made the folder for saved variables
+```
+checkpoint = tf.train.get_checkpoint_state("saved_networks_DQN")
+```
+
+Then you are ready to implement the code! :laughing:
+
+---
 ## Games 
 To verify the codes, I used the games as follows. 
 * dot 
