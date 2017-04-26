@@ -224,9 +224,9 @@ observation = resize_and_norm(observation)
 
 # Making replay memory
 for i in range(Num_start_training):
-	# if step % Num_skipFrame == 0:
-	action = np.zeros([Num_action])
-	action[random.randint(0, Num_action - 1)] = 1.0
+	if step % Num_skipFrame == 0:
+		action = np.zeros([Num_action])
+		action[random.randint(0, Num_action - 1)] = 1.0
 
 	observation_next, reward, terminal = game_state.frame_step(action)
 	observation_next = resize_and_norm(observation_next)
@@ -253,15 +253,15 @@ while True:
 			del Replay_memory[0]
 
 		# if random value(0 - 1) is smaller than Epsilon, action is random. Otherwise, action is the one which has the largest Q value 
-		# if step % Num_skipFrame == 0:
-		if random.random() < Epsilon:
-			action = np.zeros([Num_action])
-			action[random.randint(0, Num_action - 1)] = 1
-		else:
-			observation_feed = np.reshape(observation, (1, img_size, img_size, 3))
-			Q_value = output.eval(feed_dict={x_image: observation_feed})[0]
-			action = np.zeros([Num_action])
-			action[np.argmax(Q_value)] = 1
+		if step % Num_skipFrame == 0:
+			if random.random() < Epsilon:
+				action = np.zeros([Num_action])
+				action[random.randint(0, Num_action - 1)] = 1
+			else:
+				observation_feed = np.reshape(observation, (1, img_size, img_size, 3))
+				Q_value = output.eval(feed_dict={x_image: observation_feed})[0]
+				action = np.zeros([Num_action])
+				action[np.argmax(Q_value)] = 1
 
 		observation_next, reward, terminal = game_state.frame_step(action)
 		observation_next = resize_and_norm(observation_next)
@@ -313,10 +313,10 @@ while True:
 		state = 'Testing'
 
 		# Choose the action of testing state
-		# if step % Num_skipFrame == 0:	
-		Q_value = output.eval(feed_dict={x_image: observation_feed})[0]
-		action = np.zeros([Num_action])
-		action[np.argmax(Q_value)] = 1
+		if step % Num_skipFrame == 0:	
+			Q_value = output.eval(feed_dict={x_image: observation_feed})[0]
+			action = np.zeros([Num_action])
+			action[np.argmax(Q_value)] = 1
 			
 		# Get game state
 		observation_next, reward, terminal = game_state.frame_step(action)
