@@ -157,6 +157,8 @@ PIECES = {'S': S_SHAPE_TEMPLATE,
           'O': O_SHAPE_TEMPLATE,
           'T': T_SHAPE_TEMPLATE}
 
+def ReturnName():
+    return 'tetris'
 
 class GameState:
     def __init__(self):
@@ -198,7 +200,7 @@ class GameState:
         self.frame_step([1,0,0,0,0,0])
         
         pygame.display.update()
-
+    
     def reinit(self):
         self.board = self.getBlankBoard()
         self.lastMoveDownTime = time.time()

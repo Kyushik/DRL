@@ -8,7 +8,8 @@ import numpy as np
 import copy 
 import matplotlib.pyplot as plt 
 import datetime 
-# from pushbullet.pushbullet import PushBullet
+from pushbullet.pushbullet import PushBullet
+import time 
 
 # Import games
 sys.path.append("Wrapped_Game/")
@@ -17,24 +18,25 @@ sys.path.append("Wrapped_Game/")
 # pong = 3
 # dot, dot_test = 4
 # tetris = 5
-import pong as game
+import pong 
 import dot  
-import dot_test 
-import tetris   
+import dot_test as game   
+import tetris 
 
 # Parameter setting 
-Num_action = 3
+Num_action = 5
 Gamma = 0.99
 Learning_rate = 0.00025 
 Epsilon = 1 
 Final_epsilon = 0.1 
 
 Num_replay_memory = 40000
-Num_start_training = 20000
+Num_start_training = 40000
 Num_training = 200000
 Num_update = 2000
 Num_batch = 32
 Num_test = 50000
+Num_skipFrame = 1
 
 img_size = 80
 
@@ -45,12 +47,12 @@ first_dense  = [10*10*128, 1024]
 second_dense = [1024, 256]
 third_dense  = [256, Num_action]
 
-game_name = 'dot'
+game_name = game.ReturnName()
 
-# apiKey = "o.EaKxqzWHIba2UEX7oQEmMetS3MAN4ctW"
-# p = PushBullet(apiKey)
-# # Get a list of devices
-# devices = p.getDevices()
+apiKey = "o.EaKxqzWHIba2UEX7oQEmMetS3MAN4ctW"
+p = PushBullet(apiKey)
+# Get a list of devices
+devices = p.getDevices()
 
 # Initialize weights and bias 
 def weight_variable(shape):
@@ -185,7 +187,7 @@ y_prediction = tf.placeholder(tf.float32, shape = [None])
 
 y_target = tf.reduce_sum(tf.multiply(output, action_target), reduction_indices = 1)
 Loss = tf.reduce_mean(tf.square(y_prediction - y_target))
-train_step = tf.train.AdamOptimizer(Learning_rate).minimize(Loss)
+train_step = tf.train.RMSPropOptimizer(Learning_rate).minimize(Loss)
 
 # Initialize variables
 config = tf.ConfigProto()
@@ -213,6 +215,7 @@ step = 1
 state = 'Observing'
 score = 0 
 episode = 0
+datetime_now = str(datetime.datetime.now()) 
 
 game_state = game.GameState()
 action = np.zeros([Num_action])
@@ -221,16 +224,22 @@ observation = resize_and_norm(observation)
 
 # Making replay memory
 for i in range(Num_start_training):
+	# if step % Num_skipFrame == 0:
 	action = np.zeros([Num_action])
 	action[random.randint(0, Num_action - 1)] = 1.0
+
 	observation_next, reward, terminal = game_state.frame_step(action)
 	observation_next = resize_and_norm(observation_next)
 
-	Replay_memory.append([observation, action, reward, observation_next, terminal])
+	if step % Num_skipFrame == 0:
+		Replay_memory.append([observation, action, reward, observation_next, terminal])
+	
 	observation = observation_next
+	
 	if step % 100 == 0:
 		print('step: ' + str(step) + ' / '  + 'state: ' + state)
 	step += 1
+	# time.sleep(0.2)
 
 plt.figure(1)
 plot_x = []
@@ -244,21 +253,24 @@ while True:
 			del Replay_memory[0]
 
 		# if random value(0 - 1) is smaller than Epsilon, action is random. Otherwise, action is the one which has the largest Q value 
+		# if step % Num_skipFrame == 0:
 		if random.random() < Epsilon:
 			action = np.zeros([Num_action])
 			action[random.randint(0, Num_action - 1)] = 1
-			observation_next, reward, terminal = game_state.frame_step(action)
-			observation_next = resize_and_norm(observation_next)
 		else:
 			observation_feed = np.reshape(observation, (1, img_size, img_size, 3))
 			Q_value = output.eval(feed_dict={x_image: observation_feed})[0]
 			action = np.zeros([Num_action])
 			action[np.argmax(Q_value)] = 1
-			observation_next, reward, terminal = game_state.frame_step(action)
-			observation_next = resize_and_norm(observation_next)
+
+		observation_next, reward, terminal = game_state.frame_step(action)
+		observation_next = resize_and_norm(observation_next)
 
 		# Save experience to the Replay memory 
-		Replay_memory.append([observation, action, reward, observation_next, terminal])	
+		if step % Num_skipFrame == 0:
+			Replay_memory.append([observation, action, reward, observation_next, terminal])	
+
+		# Select minibatch
 		minibatch =  random.sample(Replay_memory, Num_batch)
 
 		# Save the each batch data 
@@ -299,9 +311,14 @@ while True:
 	if step > Num_start_training + Num_training:
 		# Testing
 		state = 'Testing'
+
+		# Choose the action of testing state
+		# if step % Num_skipFrame == 0:	
 		Q_value = output.eval(feed_dict={x_image: observation_feed})[0]
 		action = np.zeros([Num_action])
 		action[np.argmax(Q_value)] = 1
+			
+		# Get game state
 		observation_next, reward, terminal = game_state.frame_step(action)
 		observation_next = resize_and_norm(observation_next)
 		observation_next = np.reshape(observation_next, (1, img_size, img_size, 3))
@@ -309,10 +326,10 @@ while True:
 		observation_feed = observation_next
 
 	if step == Num_start_training + Num_training + Num_test:
-		plt.savefig('./Plot/' + ' DQN ' + game_name + '.png')		
+		plt.savefig('./Plot/' + datetime_now + '_DQN_' + game_name + '.png')		
 
 		# Send a note to pushbullet 
-		# p.pushNote(devices[0]["iden"], 'DQN', 'DQN is done')
+		p.pushNote(devices[0]["iden"], 'DQN', 'DQN is done')
 		
 		# Finish the Code 
 		break	

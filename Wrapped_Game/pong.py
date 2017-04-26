@@ -43,6 +43,9 @@ HIT_REWARD = 0.5
 LOSE_REWARD = -1
 SCORE_REWARD = 1
 
+def ReturnName():
+    return 'pong'
+
 class GameState:
     def __init__(self):
         self.bar1_x, self.bar2_x = 10. , 620.
@@ -53,7 +56,7 @@ class GameState:
         self.speed_x, self.speed_y = 9., 9.
         self.serve = 0
         self.count = 0
-        
+ 
     def terminate():
         pygame.quit()
         sys.exit()

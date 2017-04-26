@@ -41,6 +41,9 @@ food_Color = GREEN
 enemy_Color = RED 
 my_Color = BRIGHT_BLUE
 
+def ReturnName():
+	return 'dot'
+
 class GameState:
 	def __init__(self):
 		global FPS_CLOCK, DISPLAYSURF, BASIC_FONT
