@@ -8,7 +8,7 @@ import numpy as np
 import copy 
 import matplotlib.pyplot as plt 
 import datetime 
-# from pushbullet.pushbullet import PushBullet
+from pushbullet.pushbullet import PushBullet
 import time 
 
 # Import games
@@ -36,9 +36,9 @@ Num_training = 200000
 Num_update = 2000
 Num_batch = 32
 Num_test = 50000
-Num_skipFrame = 1
-Num_stackFrame = 1
-Num_colorChannel = 3
+Num_skipFrame = 4
+Num_stackFrame = 3
+Num_colorChannel = 1
 
 img_size = 80
 
@@ -51,10 +51,10 @@ third_dense  = [256, Num_action]
 
 game_name = game.ReturnName()
 
-# apiKey = "o.EaKxqzWHIba2UEX7oQEmMetS3MAN4ctW"
-# p = PushBullet(apiKey)
-# # Get a list of devices
-# devices = p.getDevices()
+apiKey = "o.EaKxqzWHIba2UEX7oQEmMetS3MAN4ctW"
+p = PushBullet(apiKey)
+# Get a list of devices
+devices = p.getDevices()
 
 # Initialize weights and bias 
 def weight_variable(shape):
@@ -223,6 +223,7 @@ state = 'Observing'
 score = 0 
 episode = 0
 datetime_now = str(datetime.date.today()) 
+hour = str(datetime.datetime.now().hour)
 
 game_state = game.GameState()
 action = np.zeros([Num_action])
@@ -247,16 +248,25 @@ for i in range(Num_start_training):
 
 	observation_set.append(observation_next)
 
+	observation_next_in = np.zeros((img_size, img_size, 1))
+
 	# Stack the frame according to the number of skipping frame 	
 	for stack_frame in range(Num_stackFrame):
-		observation_in[:,:, stack_frame * Num_colorChannel : (stack_frame + 1) * Num_colorChannel] = observation_set[-2 - (Num_skipFrame * stack_frame)]
-		observation_next_in[:,:, stack_frame * Num_colorChannel : (stack_frame + 1) * Num_colorChannel] = observation_set[-1 - (Num_skipFrame * stack_frame)]
+		# observation_in[:,:, stack_frame * Num_colorChannel : (stack_frame + 1) * Num_colorChannel] = observation_set[-2 - (Num_skipFrame * stack_frame)]
+		# observation_next_in[:,:, stack_frame * Num_colorChannel : (stack_frame + 1) * Num_colorChannel] = observation_set[-1 - (Num_skipFrame * stack_frame)]
+		observation_next_in = np.insert(observation_next_in, [1], observation_set[-1 - (Num_skipFrame * stack_frame)], axis = 2)
+		# observation_next_in = observation_set[-1 - (Num_skipFrame * stack_frame)]
 
 	del observation_set[0]
 
-	Replay_memory.append([observation, action, reward, observation_next, terminal])
+	observation_next_in = np.delete(observation_next_in, [0], axis = 2)
+
+	# observation_next_in = observation_set[-1]
+
+	Replay_memory.append([observation_in, action, reward, observation_next_in, terminal])
 	
 	observation = observation_next
+	observation_in = observation_next_in
 	
 	if step % 100 == 0:
 		print('step: ' + str(step) + ' / '  + 'state: ' + state)
@@ -281,7 +291,7 @@ while True:
 			action = np.zeros([Num_action])
 			action[random.randint(0, Num_action - 1)] = 1
 		else:
-			observation_feed = np.reshape(observation, (1, img_size, img_size, Num_colorChannel * Num_stackFrame))
+			observation_feed = np.reshape(observation_in, (1, img_size, img_size, Num_colorChannel * Num_stackFrame))
 			Q_value = output.eval(feed_dict={x_image: observation_feed})[0]
 			action = np.zeros([Num_action])
 			action[np.argmax(Q_value)] = 1
@@ -291,15 +301,24 @@ while True:
 
 		observation_set.append(observation_next)
 
+		observation_next_in = np.zeros((img_size, img_size, 1))
+
 		# Stack the frame according to the number of skipping frame 
 		for stack_frame in range(Num_stackFrame):
-			observation_in[:,:, stack_frame * Num_colorChannel : (stack_frame + 1) * Num_colorChannel] = observation_set[-2 - (Num_skipFrame * stack_frame)]
-			observation_next_in[:,:, stack_frame * Num_colorChannel : (stack_frame + 1) * Num_colorChannel] = observation_set[-1 - (Num_skipFrame * stack_frame)]
+			# observation_in[:,:, stack_frame * Num_colorChannel : (stack_frame + 1) * Num_colorChannel] = observation_set[-2 - (Num_skipFrame * stack_frame)]
+			# observation_next_in[:,:, stack_frame * Num_colorChannel : (stack_frame + 1) * Num_colorChannel] = observation_set[-1 - (Num_skipFrame * stack_frame)]
+
+			observation_next_in = np.insert(observation_next_in, [1], observation_set[-1 - (Num_skipFrame * stack_frame)], axis = 2)
+			# observation_next_in = observation_set[-1 - (Num_skipFrame * stack_frame)]
 
 		del observation_set[0]
 
+		observation_next_in = np.delete(observation_next_in, [0], axis = 2)
+
+		# observation_next_in = observation_set[-1]
+
 		# Save experience to the Replay memory 
-		Replay_memory.append([observation, action, reward, observation_next, terminal])	
+		Replay_memory.append([observation_in, action, reward, observation_next_in, terminal])	
 
 
 		# Update parameters at every iteration	
@@ -346,7 +365,7 @@ while True:
 
 		# Choose the action of testing state
 		# if step % Num_skipFrame == 0:	
-		observation_feed = np.reshape(observation, (1, img_size, img_size, Num_colorChannel * Num_stackFrame))
+		observation_feed = np.reshape(observation_in, (1, img_size, img_size, Num_colorChannel * Num_stackFrame))
 		Q_value = output.eval(feed_dict={x_image: observation_feed})[0]
 		action = np.zeros([Num_action])
 		action[np.argmax(Q_value)] = 1
@@ -354,25 +373,34 @@ while True:
 		# Get game state
 		observation_next, reward, terminal = game_state.frame_step(action)
 		observation_next = resize_and_norm(observation_next)
-		observation_next = np.reshape(observation_next, (1, img_size, img_size, Num_colorChannel))
+		# observation_next = np.reshape(observation_next, (1, img_size, img_size, Num_colorChannel))
 
 		observation_set.append(observation_next)
 
+		observation_next_in = np.zeros((img_size, img_size, 1))
+
 		# Stack the frame according to the number of skipping frame 
 		for stack_frame in range(Num_stackFrame):
-			observation_in[:,:, stack_frame * Num_colorChannel : (stack_frame + 1) * Num_colorChannel] = observation_set[-2 - (Num_skipFrame * stack_frame)]
-			observation_next_in[:,:, stack_frame * Num_colorChannel : (stack_frame + 1) * Num_colorChannel] = observation_set[-1 - (Num_skipFrame * stack_frame)]
+			# observation_in[:,:, stack_frame * Num_colorChannel : (stack_frame + 1) * Num_colorChannel] = observation_set[-2 - (Num_skipFrame * stack_frame)]
+			# observation_next_in[:,:, stack_frame * Num_colorChannel : (stack_frame + 1) * Num_colorChannel] = observation_set[-1 - (Num_skipFrame * stack_frame)]
 
+			observation_next_in = np.insert(observation_next_in, [1], observation_set[-1 - (Num_skipFrame * stack_frame)], axis = 2)
+			# observation_next_in = observation_set[-1 - (Num_skipFrame * stack_frame)]
+			
 		del observation_set[0]
+		
+		observation_next_in = np.delete(observation_next_in, [0], axis = 2)
+
+		# observation_next_in = observation_set[-1]
 
 		observation = observation_next
 		observation_in = observation_next_in 
 
 	if step == Num_start_training + Num_training + Num_test:
-		plt.savefig('./Plot/' + datetime_now + '_DQN_' + game_name + '.png')		
+		plt.savefig('./Plot/' + datetime_now + '_' + hour + '_DQN_' + game_name + '.png')		
 
 		# # Send a note to pushbullet 
-		# p.pushNote(devices[0]["iden"], 'DQN', 'DQN is done')
+		p.pushNote(devices[0]["iden"], 'DQN', 'DQN is done')
 		
 		# Finish the Code 
 		break	
