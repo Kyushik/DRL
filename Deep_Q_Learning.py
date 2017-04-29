@@ -8,7 +8,7 @@ import numpy as np
 import copy 
 import matplotlib.pyplot as plt 
 import datetime 
-from pushbullet.pushbullet import PushBullet
+# from pushbullet.pushbullet import PushBullet
 import time 
 
 # Import games
@@ -51,10 +51,10 @@ third_dense  = [256, Num_action]
 
 game_name = game.ReturnName()
 
-apiKey = "o.EaKxqzWHIba2UEX7oQEmMetS3MAN4ctW"
-p = PushBullet(apiKey)
-# Get a list of devices
-devices = p.getDevices()
+# apiKey = "o.EaKxqzWHIba2UEX7oQEmMetS3MAN4ctW"
+# p = PushBullet(apiKey)
+# # Get a list of devices
+# devices = p.getDevices()
 
 # Initialize weights and bias 
 def weight_variable(shape):
@@ -400,7 +400,7 @@ while True:
 		plt.savefig('./Plot/' + datetime_now + '_' + hour + '_DQN_' + game_name + '.png')		
 
 		# # Send a note to pushbullet 
-		p.pushNote(devices[0]["iden"], 'DQN', 'DQN is done')
+		# p.pushNote(devices[0]["iden"], 'DQN', 'DQN is done')
 		
 		# Finish the Code 
 		break	
