@@ -9,6 +9,7 @@ import copy
 import matplotlib.pyplot as plt 
 import datetime 
 from pushbullet.pushbullet import PushBullet
+import time 
 
 # Import games
 sys.path.append("Wrapped_Game/")
@@ -23,23 +24,25 @@ import dot_test
 import tetris   
 
 # Parameter setting 
-Num_action = 4
+Num_action = 3
 Gamma = 0.99
 Learning_rate = 0.00025 
 Epsilon = 1 
 Final_epsilon = 0.1 
 
 Num_replay_memory = 40000
-Num_start_training = 40000
+Num_start_training = 20000
 Num_training = 200000
 Num_update = 2000
 Num_batch = 32
 Num_test = 50000
-Num_skipFrame = 1
+Num_skipFrame = 4
+Num_stackFrame = 3
+Num_colorChannel = 1
 
 img_size = 80
 
-first_conv   = [8,8,3,32]
+first_conv   = [8,8,Num_colorChannel * Num_stackFrame,32]
 second_conv  = [4,4,32,64]
 third_conv   = [3,3,64,128]
 first_dense  = [10*10*128, 1024]
@@ -112,11 +115,15 @@ def assign_network_to_target():
 
 def resize_and_norm(observation):
 	observation_out = cv2.resize(observation, (img_size, img_size))
+	if Num_colorChannel == 1:
+		observation_out = cv2.cvtColor(observation_out, cv2.COLOR_BGR2GRAY)
+		observation_out = np.reshape(observation_out, (img_size, img_size, 1))
+
 	observation_out = (observation_out - (255.0 / 2)) / (255.0 / 2)
 	return observation_out 
 
 # Input 
-x_image = tf.placeholder(tf.float32, shape = [None, img_size, img_size, 3])
+x_image = tf.placeholder(tf.float32, shape = [None, img_size, img_size, Num_colorChannel * Num_stackFrame])
 
 # Convolution variables 
 w_conv1 = weight_variable(first_conv)
@@ -186,7 +193,8 @@ y_prediction = tf.placeholder(tf.float32, shape = [None])
 
 y_target = tf.reduce_sum(tf.multiply(output, action_target), reduction_indices = 1)
 Loss = tf.reduce_mean(tf.square(y_prediction - y_target))
-train_step = tf.train.RMSPropOptimizer(Learning_rate).minimize(Loss)
+# train_step = tf.train.RMSPropOptimizer(Learning_rate).minimize(Loss)
+train_step = tf.train.AdamOptimizer(Learning_rate).minimize(Loss)
 
 # Initialize variables
 config = tf.ConfigProto()
@@ -214,33 +222,56 @@ step = 1
 state = 'Observing'
 score = 0 
 episode = 0
-datetime_now = str(datetime.datetime.now()) 
+datetime_now = str(datetime.date.today()) 
+hour = str(datetime.datetime.now().hour)
 
 game_state = game.GameState()
 action = np.zeros([Num_action])
 observation, reward, terminal = game_state.frame_step(action)
 observation = resize_and_norm(observation)
+observation_copy = copy.deepcopy(observation)
+
+observation_in = np.zeros([img_size, img_size, Num_colorChannel * Num_stackFrame])
+observation_next_in = np.zeros([img_size, img_size, Num_colorChannel * Num_stackFrame])
+
+observation_set = []
+for i in range(Num_skipFrame * Num_stackFrame):
+	observation_set.append(observation_copy)
 
 # Making replay memory
 for i in range(Num_start_training):
-	if step % Num_skipFrame == 0:
-		action = np.zeros([Num_action])
-		action[random.randint(0, Num_action - 1)] = 1.0
+	action = np.zeros([Num_action])
+	action[random.randint(0, Num_action - 1)] = 1.0
 
 	observation_next, reward, terminal = game_state.frame_step(action)
 	observation_next = resize_and_norm(observation_next)
 
-	if step % Num_skipFrame == 0:
-		Replay_memory.append([observation, action, reward, observation_next, terminal])
+	observation_set.append(observation_next)
+
+	observation_next_in = np.zeros((img_size, img_size, 1))
+
+	# Stack the frame according to the number of skipping frame 	
+	for stack_frame in range(Num_stackFrame):
+		observation_next_in = np.insert(observation_next_in, [1], observation_set[-1 - (Num_skipFrame * stack_frame)], axis = 2)
+
+	del observation_set[0]
+
+	observation_next_in = np.delete(observation_next_in, [0], axis = 2)
+
+	Replay_memory.append([observation_in, action, reward, observation_next_in, terminal])
 	
-	observation = observation_next
+	observation_in = observation_next_in
+
 	if step % 100 == 0:
 		print('step: ' + str(step) + ' / '  + 'state: ' + state)
 	step += 1
 
+# Figure and figure data setting
 plt.figure(1)
 plot_x = []
 plot_y = []
+
+# Training & Testing
 while True:
 	if step <= Num_start_training + Num_training:
 		# Training 
@@ -250,22 +281,38 @@ while True:
 			del Replay_memory[0]
 
 		# if random value(0 - 1) is smaller than Epsilon, action is random. Otherwise, action is the one which has the largest Q value 
-		if step % Num_skipFrame == 0:
-			if random.random() < Epsilon:
-				action = np.zeros([Num_action])
-				action[random.randint(0, Num_action - 1)] = 1
-			else:
-				observation_feed = np.reshape(observation, (1, img_size, img_size, 3))
-				Q_value = output.eval(feed_dict={x_image: observation_feed})[0]
-				action = np.zeros([Num_action])
-				action[np.argmax(Q_value)] = 1
-			
+		if random.random() < Epsilon:
+			action = np.zeros([Num_action])
+			action[random.randint(0, Num_action - 1)] = 1
+		else:
+			observation_feed = np.reshape(observation_in, (1, img_size, img_size, Num_colorChannel * Num_stackFrame))
+			Q_value = output.eval(feed_dict={x_image: observation_feed})[0]
+			action = np.zeros([Num_action])
+			action[np.argmax(Q_value)] = 1
+
 		observation_next, reward, terminal = game_state.frame_step(action)
 		observation_next = resize_and_norm(observation_next)
 
+		observation_set.append(observation_next)
+
+		observation_next_in = np.zeros((img_size, img_size, 1))
+
+		# Stack the frame according to the number of skipping frame 
+		for stack_frame in range(Num_stackFrame):
+			observation_next_in = np.insert(observation_next_in, [1], observation_set[-1 - (Num_skipFrame * stack_frame)], axis = 2)
+
+		del observation_set[0]
+
+		observation_next_in = np.delete(observation_next_in, [0], axis = 2)
+
 		# Save experience to the Replay memory 
-		if step % Num_skipFrame == 0:
-			Replay_memory.append([observation, action, reward, observation_next, terminal])	
+		Replay_memory.append([observation_in, action, reward, observation_next_in, terminal])
+
+		# Update parameters at every iteration	
+		observation_in = observation_next_in
+
+		if Epsilon > Final_epsilon:
+    			Epsilon -= 1.0/Num_training
 
 		# Select minibatch
 		minibatch =  random.sample(Replay_memory, Num_batch)
@@ -304,29 +351,33 @@ while True:
 			saver.save(sess, 'saved_networks_DDQN/' + game_name)
 			print('Model is saved!!!')
 
-		# Update parameters at every iteration	
-		observation = observation_next
-
-		if Epsilon > Final_epsilon:
-			Epsilon -= 1.0/Num_training
-		
-
 	if step > Num_start_training + Num_training:
 		# Testing
 		state = 'Testing'
-	
-		# Choose the action of testing state
-		if step % Num_skipFrame == 0:		
-			Q_value = output.eval(feed_dict={x_image: observation_feed})[0]
-			action = np.zeros([Num_action])
-			action[np.argmax(Q_value)] = 1
 
+		# Choose the action of testing state
+		observation_feed = np.reshape(observation_in, (1, img_size, img_size, Num_colorChannel * Num_stackFrame))
+		Q_value = output.eval(feed_dict={x_image: observation_feed})[0]
+		action = np.zeros([Num_action])
+		action[np.argmax(Q_value)] = 1
+			
 		# Get game state
 		observation_next, reward, terminal = game_state.frame_step(action)
 		observation_next = resize_and_norm(observation_next)
-		observation_next = np.reshape(observation_next, (1, img_size, img_size, 3))
 
-		observation_feed = observation_next
+		observation_set.append(observation_next)
+
+		observation_next_in = np.zeros((img_size, img_size, 1))
+
+		# Stack the frame according to the number of skipping frame 
+		for stack_frame in range(Num_stackFrame):
+			observation_next_in = np.insert(observation_next_in, [1], observation_set[-1 - (Num_skipFrame * stack_frame)], axis = 2)
+			
+		del observation_set[0]
+		
+		observation_next_in = np.delete(observation_next_in, [0], axis = 2)
+
+		observation_in = observation_next_in 
 
 	if step == Num_start_training + Num_training + Num_test:
 		plt.savefig('./Plot/' + datetime_now + '_DDQN_' + game_name + '.png')		
@@ -349,7 +400,7 @@ while True:
 		score = 0
 		episode += 1
 
-	if len(plot_x) == 100:
+	if len(plot_x) == 50:
 		plt.xlabel('Episode')
 		plt.ylabel('Score')
 		plt.title('Double Deep Q Learning')
