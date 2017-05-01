@@ -380,7 +380,7 @@ while True:
 		observation_in = observation_next_in 
 
 	if step == Num_start_training + Num_training + Num_test:
-		plt.savefig('./Plot/' + datetime_now + '_DDQN_' + game_name + '.png')		
+		plt.savefig('./Plot/' + datetime_now + '_' + hour + '_DDQN_' + game_name + '.png')			
 
 		# Send a note to pushbullet 
 		p.pushNote(devices[0]["iden"], 'DDQN', 'DDQN is done')
