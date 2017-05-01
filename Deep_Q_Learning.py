@@ -24,7 +24,7 @@ import dot_test
 import tetris 
 
 # Parameter setting 
-Num_action = 5
+Num_action = 3
 Gamma = 0.99
 Learning_rate = 0.0002
 Epsilon = 1 
@@ -193,8 +193,8 @@ y_prediction = tf.placeholder(tf.float32, shape = [None])
 
 y_target = tf.reduce_sum(tf.multiply(output, action_target), reduction_indices = 1)
 Loss = tf.reduce_mean(tf.square(y_prediction - y_target))
-# train_step = tf.train.RMSPropOptimizer(Learning_rate).minimize(Loss)
-train_step = tf.train.AdamOptimizer(Learning_rate).minimize(Loss)
+train_step = tf.train.RMSPropOptimizer(Learning_rate).minimize(Loss)
+# train_step = tf.train.AdamOptimizer(Learning_rate).minimize(Loss)
 
 # Initialize variables
 config = tf.ConfigProto()
@@ -252,20 +252,14 @@ for i in range(Num_start_training):
 
 	# Stack the frame according to the number of skipping frame 	
 	for stack_frame in range(Num_stackFrame):
-		# observation_in[:,:, stack_frame * Num_colorChannel : (stack_frame + 1) * Num_colorChannel] = observation_set[-2 - (Num_skipFrame * stack_frame)]
-		# observation_next_in[:,:, stack_frame * Num_colorChannel : (stack_frame + 1) * Num_colorChannel] = observation_set[-1 - (Num_skipFrame * stack_frame)]
 		observation_next_in = np.insert(observation_next_in, [1], observation_set[-1 - (Num_skipFrame * stack_frame)], axis = 2)
-		# observation_next_in = observation_set[-1 - (Num_skipFrame * stack_frame)]
 
 	del observation_set[0]
 
 	observation_next_in = np.delete(observation_next_in, [0], axis = 2)
 
-	# observation_next_in = observation_set[-1]
-
 	Replay_memory.append([observation_in, action, reward, observation_next_in, terminal])
 	
-	observation = observation_next
 	observation_in = observation_next_in
 	
 	if step % 100 == 0:
@@ -305,24 +299,17 @@ while True:
 
 		# Stack the frame according to the number of skipping frame 
 		for stack_frame in range(Num_stackFrame):
-			# observation_in[:,:, stack_frame * Num_colorChannel : (stack_frame + 1) * Num_colorChannel] = observation_set[-2 - (Num_skipFrame * stack_frame)]
-			# observation_next_in[:,:, stack_frame * Num_colorChannel : (stack_frame + 1) * Num_colorChannel] = observation_set[-1 - (Num_skipFrame * stack_frame)]
-
 			observation_next_in = np.insert(observation_next_in, [1], observation_set[-1 - (Num_skipFrame * stack_frame)], axis = 2)
-			# observation_next_in = observation_set[-1 - (Num_skipFrame * stack_frame)]
 
 		del observation_set[0]
 
 		observation_next_in = np.delete(observation_next_in, [0], axis = 2)
-
-		# observation_next_in = observation_set[-1]
 
 		# Save experience to the Replay memory 
 		Replay_memory.append([observation_in, action, reward, observation_next_in, terminal])	
 
 
 		# Update parameters at every iteration	
-		observation = observation_next
 		observation_in = observation_next_in
 
 		if Epsilon > Final_epsilon:
@@ -364,7 +351,6 @@ while True:
 		state = 'Testing'
 
 		# Choose the action of testing state
-		# if step % Num_skipFrame == 0:	
 		observation_feed = np.reshape(observation_in, (1, img_size, img_size, Num_colorChannel * Num_stackFrame))
 		Q_value = output.eval(feed_dict={x_image: observation_feed})[0]
 		action = np.zeros([Num_action])
@@ -373,7 +359,6 @@ while True:
 		# Get game state
 		observation_next, reward, terminal = game_state.frame_step(action)
 		observation_next = resize_and_norm(observation_next)
-		# observation_next = np.reshape(observation_next, (1, img_size, img_size, Num_colorChannel))
 
 		observation_set.append(observation_next)
 
@@ -381,19 +366,12 @@ while True:
 
 		# Stack the frame according to the number of skipping frame 
 		for stack_frame in range(Num_stackFrame):
-			# observation_in[:,:, stack_frame * Num_colorChannel : (stack_frame + 1) * Num_colorChannel] = observation_set[-2 - (Num_skipFrame * stack_frame)]
-			# observation_next_in[:,:, stack_frame * Num_colorChannel : (stack_frame + 1) * Num_colorChannel] = observation_set[-1 - (Num_skipFrame * stack_frame)]
-
 			observation_next_in = np.insert(observation_next_in, [1], observation_set[-1 - (Num_skipFrame * stack_frame)], axis = 2)
-			# observation_next_in = observation_set[-1 - (Num_skipFrame * stack_frame)]
 			
 		del observation_set[0]
 		
 		observation_next_in = np.delete(observation_next_in, [0], axis = 2)
 
-		# observation_next_in = observation_set[-1]
-
-		observation = observation_next
 		observation_in = observation_next_in 
 
 	if step == Num_start_training + Num_training + Num_test:
@@ -417,7 +395,7 @@ while True:
 		score = 0
 		episode += 1
 
-	if len(plot_x) == 100:
+	if len(plot_x) == 50:
 		plt.xlabel('Episode')
 		plt.ylabel('Score')
 		plt.title('Deep Q Learning')
