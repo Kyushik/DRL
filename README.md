@@ -100,11 +100,11 @@ Original tetris game code is from [invent with pygame](http://inventwithpython.c
 
 I studied `Deep Q Network` with the famous paper [Human-level control through deep reinforcement learning](http://www.nature.com/nature/journal/v518/n7540/full/nature14236.html) from Deep mind and `deep q network code` from [github of asrivat1](https://github.com/asrivat1/DeepLearningVideoGames).
 <br> After, I studied DQN and made my own code. 
-<br> I verified the code with the game `dot mini`. 
+<br> I verified the code with the game `pong`. 
 <br> The result graph is as follows. 
 
 <p align= "center">
-  <img src="./Plot/DQN dot_test.png" width="500" alt="Combined Image" />
+  <img src="./Plot/2017-05-01_9_DQN_pong.png" width="500" alt="Combined Image" />
 </p>
 
 Each point is the average score of 100 games. 
@@ -129,12 +129,14 @@ I studied `Double Deep Q Network` with the paper [Deep Reinforcement Learning wi
 <p align= "center">
   <img src="./Image/DDQN_equation.PNG" width="500" alt="Combined Image" />
 </p>
+
+<br> I verified the code with the game `pong`. 
 <br> The result graph is as follows. 
 
 <p align= "center">
-  <img src="./Plot/DDQN dot_test.png" width="500" alt="Combined Image" />
+  <img src="./Plot/2017-05-01_DDQN_pong.png" width="500" alt="Combined Image" />
 </p>
 
-This result shows slightly better performance than DQN algorithm.
+This result shows better performance than DQN algorithm.
 
 
