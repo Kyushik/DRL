@@ -18,13 +18,14 @@ sys.path.append("Wrapped_Game/")
 # pong = 3
 # dot, dot_test = 4
 # tetris = 5
-import pong as game
-import dot  
+import pong
+import dot as game 
 import dot_test 
-import tetris   
+import tetris  
+import wormy  
 
 # Parameter setting 
-Num_action = 3
+Num_action = game.Return_Num_Action()
 Gamma = 0.99
 Learning_rate = 0.00025 
 Epsilon = 1 

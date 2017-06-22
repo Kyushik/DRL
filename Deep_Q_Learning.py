@@ -8,7 +8,7 @@ import numpy as np
 import copy 
 import matplotlib.pyplot as plt 
 import datetime 
-# from pushbullet.pushbullet import PushBullet
+from pushbullet.pushbullet import PushBullet
 import time 
 
 # Import games
@@ -18,22 +18,23 @@ sys.path.append("Wrapped_Game/")
 # pong = 3
 # dot, dot_test = 4
 # tetris = 5
-import pong as game
-import dot  
+import pong 
+import dot as game 
 import dot_test    
-import tetris 
+import tetris  
+import wormy
 
 # Parameter setting 
-Num_action = 3
+Num_action = game.Return_Num_Action()
 Gamma = 0.99
-Learning_rate = 0.0002
+Learning_rate = 0.0001
 Epsilon = 1 
 Final_epsilon = 0.1 
 
 Num_replay_memory = 40000
 Num_start_training = 20000
-Num_training = 200000
-Num_update = 2000
+Num_training = 400000
+Num_update = 4000
 Num_batch = 32
 Num_test = 50000
 Num_skipFrame = 4
@@ -51,10 +52,10 @@ third_dense  = [256, Num_action]
 
 game_name = game.ReturnName()
 
-# apiKey = "o.EaKxqzWHIba2UEX7oQEmMetS3MAN4ctW"
-# p = PushBullet(apiKey)
-# # Get a list of devices
-# devices = p.getDevices()
+apiKey = "o.EaKxqzWHIba2UEX7oQEmMetS3MAN4ctW"
+p = PushBullet(apiKey)
+# Get a list of devices
+devices = p.getDevices()
 
 # Initialize weights and bias 
 def weight_variable(shape):
@@ -193,8 +194,8 @@ y_prediction = tf.placeholder(tf.float32, shape = [None])
 
 y_target = tf.reduce_sum(tf.multiply(output, action_target), reduction_indices = 1)
 Loss = tf.reduce_mean(tf.square(y_prediction - y_target))
-train_step = tf.train.RMSPropOptimizer(Learning_rate).minimize(Loss)
-# train_step = tf.train.AdamOptimizer(Learning_rate).minimize(Loss)
+# train_step = tf.train.RMSPropOptimizer(Learning_rate).minimize(Loss)
+train_step = tf.train.AdamOptimizer(Learning_rate).minimize(Loss)
 
 # Initialize variables
 config = tf.ConfigProto()
@@ -308,7 +309,6 @@ while True:
 		# Save experience to the Replay memory 
 		Replay_memory.append([observation_in, action, reward, observation_next_in, terminal])	
 
-
 		# Update parameters at every iteration	
 		observation_in = observation_next_in
 
@@ -378,7 +378,7 @@ while True:
 		plt.savefig('./Plot/' + datetime_now + '_' + hour + '_DQN_' + game_name + '.png')		
 
 		# # Send a note to pushbullet 
-		# p.pushNote(devices[0]["iden"], 'DQN', 'DQN is done')
+		p.pushNote(devices[0]["iden"], 'DQN', 'DQN is done')
 		
 		# Finish the Code 
 		break	
@@ -395,7 +395,7 @@ while True:
 		score = 0
 		episode += 1
 
-	if len(plot_x) == 50:
+	if len(plot_x) == 100:
 		plt.xlabel('Episode')
 		plt.ylabel('Score')
 		plt.title('Deep Q Learning')
