@@ -60,6 +60,7 @@ To verify the codes, I used the games as follows.
 * dot test 
 * tetris
 * pong 
+* wormy
 
 **Dot**
 <p align= "center">
@@ -94,6 +95,15 @@ This is `Pong game` which is one of the most famous DRL example.
 Original tetris game code is from [invent with pygame](http://inventwithpython.com/pygame) 
 <br>Wrapped version of game code is from [github of asrivat1](https://github.com/asrivat1/DeepLearningVideoGames)
 
+**Wormy**
+<p align= "center">
+  <img src="./Wrapped_Game/wormy.png" width="500" alt="Combined Image" />
+</p>
+
+Original tetris game code is from [invent with pygame](http://inventwithpython.com/pygame) 
+<br> I made wrapped version of game code my own
+
+
 
 ---
 ## Deep Q Network (DQN)
@@ -116,11 +126,11 @@ Each point is the average score of 100 games.
 
 I studied `Double Deep Q Network` with the paper [Deep Reinforcement Learning with Double Q-learning](https://arxiv.org/abs/1509.06461)
 > The main idea of this algorithm is from `Double Q Learning` (van Hasselt,
-2010).
+> 2010).
 > This algorithm uses two sets of weights, θ and θ'.
-<br> For each update, one set of weights (θ) is used to determine the greedy policy and the other (θ') is to determine its value.
-<br> The paper said, we can decouple the `selection` from the `evaluation` with this method.
-<br> This makes less likely to select overestimated values. 
+> <br> For each update, one set of weights (θ) is used to determine the greedy policy and the other (θ') is to determine its value.
+> <br> The paper said, we can decouple the `selection` from the `evaluation` with this method.
+> <br> This makes less likely to select overestimated values. 
 
 <br> As a result, the difference between DQN and DDQN at each update is as follows.
 <p align= "center">
