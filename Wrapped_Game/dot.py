@@ -207,8 +207,8 @@ class GameState:
 
 		# Killed by enemy
 		if self.My_position in self.Enemy_list:
-			reward = -1.0
-			self.score -= 1.0
+			reward = -10
+			self.score -= 10
 			image_data = pygame.surfarray.array3d(pygame.display.get_surface())
 			# print('\n')
 			# print('----------------------------------------------------------')

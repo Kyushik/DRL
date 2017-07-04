@@ -44,6 +44,9 @@ my_Color = BRIGHT_BLUE
 def ReturnName():
 	return 'dot_test'
 
+def Return_Num_Action():
+    return 4
+	
 class GameState:
 	def __init__(self):
 		global FPS_CLOCK, DISPLAYSURF, BASIC_FONT
@@ -204,8 +207,8 @@ class GameState:
 
 		# Killed by enemy
 		if self.My_position in self.Enemy_list:
-			reward = -1.0
-			self.score -= 1.0
+			reward = -5.0
+			self.score -= 5.0
 			image_data = pygame.surfarray.array3d(pygame.display.get_surface())
 			# print('\n')
 			# print('----------------------------------------------------------')
