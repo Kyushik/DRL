@@ -8,39 +8,33 @@ import numpy as np
 import copy 
 import matplotlib.pyplot as plt 
 import datetime 
-from pushbullet.pushbullet import PushBullet
+# from pushbullet.pushbullet import PushBullet
 import time 
 
-# Import games
-sys.path.append("Wrapped_Game/")
+# Parameter Setting
+import Deep_Parameters
+game = Deep_Parameters.game
 
-# Action Num
-# pong = 3
-# dot, dot_test = 4
-# tetris = 5
-import pong
-import dot as game 
-import dot_test 
-import tetris  
-import wormy  
-
-# Parameter setting 
 Num_action = game.Return_Num_Action()
-Gamma = 0.99
-Learning_rate = 0.00025 
-Epsilon = 1 
-Final_epsilon = 0.1 
 
-Num_replay_memory = 40000
-Num_start_training = 20000
-Num_training = 200000
-Num_update = 2000
-Num_batch = 32
-Num_test = 50000
-Num_skipFrame = 4
-Num_stackFrame = 3
-Num_colorChannel = 1
+Gamma = Deep_Parameters.Gamma
+Learning_rate = Deep_Parameters.Learning_rate
+Epsilon = Deep_Parameters.Epsilon
+Final_epsilon = Deep_Parameters.Final_epsilon
 
+Num_replay_memory = Deep_Parameters.Num_replay_memory
+Num_start_training = Deep_Parameters.Num_start_training
+Num_training = Deep_Parameters.Num_training
+Num_update = Deep_Parameters.Num_update
+Num_batch = Deep_Parameters.Num_batch
+Num_test = Deep_Parameters.Num_test
+Num_skipFrame = Deep_Parameters.Num_skipFrame
+Num_stackFrame = Deep_Parameters.Num_stackFrame
+Num_colorChannel = Deep_Parameters.Num_colorChannel
+
+Num_plot_episode = Deep_Parameters.Num_plot_episode
+
+# Parametwrs for Network
 img_size = 80
 
 first_conv   = [8,8,Num_colorChannel * Num_stackFrame,32]
@@ -52,10 +46,10 @@ third_dense  = [256, Num_action]
 
 game_name = game.ReturnName()
 
-apiKey = "o.EaKxqzWHIba2UEX7oQEmMetS3MAN4ctW"
-p = PushBullet(apiKey)
-# Get a list of devices
-devices = p.getDevices()
+# apiKey = "o.EaKxqzWHIba2UEX7oQEmMetS3MAN4ctW"
+# p = PushBullet(apiKey)
+# # Get a list of devices
+# devices = p.getDevices()
 
 # Initialize weights and bias 
 def weight_variable(shape):
@@ -355,6 +349,7 @@ while True:
 	if step > Num_start_training + Num_training:
 		# Testing
 		state = 'Testing'
+		Epsilon = 0
 
 		# Choose the action of testing state
 		observation_feed = np.reshape(observation_in, (1, img_size, img_size, Num_colorChannel * Num_stackFrame))
@@ -384,7 +379,7 @@ while True:
 		plt.savefig('./Plot/' + datetime_now + '_' + hour + '_DDQN_' + game_name + '.png')			
 
 		# Send a note to pushbullet 
-		p.pushNote(devices[0]["iden"], 'DDQN', 'DDQN is done')
+		# p.pushNote(devices[0]["iden"], 'DDQN', 'DDQN is done')
 		
 		# Finish the Code 
 		break		
@@ -401,7 +396,7 @@ while True:
 		score = 0
 		episode += 1
 
-	if len(plot_x) == 50:
+	if len(plot_x) == Num_plot_episode:
 		plt.xlabel('Episode')
 		plt.ylabel('Score')
 		plt.title('Double Deep Q Learning')
