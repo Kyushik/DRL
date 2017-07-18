@@ -33,16 +33,17 @@ Num_stackFrame = Deep_Parameters.Num_stackFrame
 Num_colorChannel = Deep_Parameters.Num_colorChannel
 
 Num_plot_episode = Deep_Parameters.Num_plot_episode
+Num_step_save = Deep_Parameters.Num_step_save
 
 # Parametwrs for Network
-img_size = 80
+img_size = Deep_Parameters.img_size
 
-first_conv   = [8,8,Num_colorChannel * Num_stackFrame,32]
-second_conv  = [4,4,32,64]
-third_conv   = [3,3,64,128]
-first_dense  = [10*10*128, 1024]
-second_dense = [1024, 256]
-third_dense  = [256, Num_action]
+first_conv   = Deep_Parameters.first_conv
+second_conv  = Deep_Parameters.second_conv
+third_conv   = Deep_Parameters.third_conv
+first_dense  = Deep_Parameters.first_dense
+second_dense = Deep_Parameters.second_dense
+third_dense  = Deep_Parameters.third_dense
 
 game_name = game.ReturnName()
 
@@ -189,7 +190,7 @@ y_prediction = tf.placeholder(tf.float32, shape = [None])
 y_target = tf.reduce_sum(tf.multiply(output, action_target), reduction_indices = 1)
 Loss = tf.reduce_mean(tf.square(y_prediction - y_target))
 # train_step = tf.train.RMSPropOptimizer(Learning_rate).minimize(Loss)
-train_step = tf.train.AdamOptimizer(Learning_rate).minimize(Loss)
+train_step = tf.train.AdamOptimizer(learning_rate = Learning_rate, epsilon = 1e-04).minimize(Loss)
 
 # Initialize variables
 config = tf.ConfigProto()
@@ -265,6 +266,8 @@ for i in range(Num_start_training):
 plt.figure(1)
 plot_x = []
 plot_y = []
+
+test_score = []
 
 # Training & Testing
 while True:
@@ -342,7 +345,7 @@ while True:
 		train_step.run(feed_dict = {action_target: action_batch, y_prediction: y_batch, x_image: observation_batch})
 
 	    # save progress every 10000 iterations
-		if step % 10000 == 0:
+		if step % Num_step_save == 0:
 			saver.save(sess, 'saved_networks_DDQN/' + game_name)
 			print('Model is saved!!!')
 
@@ -376,7 +379,9 @@ while True:
 		observation_in = observation_next_in 
 
 	if step == Num_start_training + Num_training + Num_test:
-		plt.savefig('./Plot/' + datetime_now + '_' + hour + '_DDQN_' + game_name + '.png')			
+		mean_score_test = np.average(test_score) 
+		print(game_name + str(mean_score_test))
+		plt.savefig('./Plot/' + datetime_now + '_' + hour + '_DDQN_' + game_name + str(mean_score_test) + '.png')		
 
 		# Send a note to pushbullet 
 		# p.pushNote(devices[0]["iden"], 'DDQN', 'DDQN is done')
@@ -392,6 +397,9 @@ while True:
 
 		plot_x.append(episode)
 		plot_y.append(score)
+
+		if state == 'Testing':
+			test_score.append(score)
 
 		score = 0
 		episode += 1

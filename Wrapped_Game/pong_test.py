@@ -11,7 +11,7 @@ import pygame.surfarray as surfarray
 import matplotlib.pyplot as plt
 
 horizontal_size = 640
-vertical_size = 320
+vertical_size = 480
 
 position = 5, 325
 os.environ['SDL_VIDEO_WINDOW_POS'] = str(position[0]) + "," + str(position[1])
@@ -71,7 +71,9 @@ class GameState:
         pygame.event.pump()
         reward = 0
         increase_speed = 0.
-        initial_ball_speed = 9.
+
+        ball_speed_x = random.uniform(7.0, 11.0)
+        ball_speed_y = random.uniform(5.0, 13.0)
 
         horizontal_size = 640
         vertical_size = 320
@@ -91,7 +93,7 @@ class GameState:
 
         screen.blit(background,(0,0))
         frame = pygame.draw.rect(screen,(255,255,255),Rect((5,5),(horizontal_size - 10,vertical_size - 10)),2)
-        middle_line = pygame.draw.aaline(screen,(255,255,255),(330,5),(330,vertical_size - 5))
+        middle_line = pygame.draw.aaline(screen,(255,255,255),(315,5),(315,vertical_size - 5))
         screen.blit(bar1,(self.bar1_x,self.bar1_y))
         screen.blit(bar2,(self.bar2_x,self.bar2_y))
         screen.blit(circle,(self.circle_x,self.circle_y))
@@ -182,12 +184,12 @@ class GameState:
             reward = LOSE_REWARD
             self.circle_x, self.circle_y = 320., vertical_size / 2
             self.bar1_y, self.bar2_y = vertical_size / 2, vertical_size / 2
-            self.speed_x = initial_ball_speed
+            self.speed_x = ball_speed_x
             if self.serve == 0:
-                self.speed_y = -initial_ball_speed
+                self.speed_y = -ball_speed_y
                 self.serve = 1
             elif self.serve == 1:
-                self.speed_y = initial_ball_speed
+                self.speed_y = ball_speed_y
                 self.serve = 0
             terminal = True
             self.count = 0
@@ -197,12 +199,12 @@ class GameState:
             reward = SCORE_REWARD
             self.circle_x, self.circle_y = 307.5, vertical_size / 2
             self.bar1_y, self.bar2_y = vertical_size / 2, vertical_size / 2
-            self.speed_x = initial_ball_speed
+            self.speed_x = ball_speed_x
             if self.serve == 0:
-                self.speed_y = -initial_ball_speed
+                self.speed_y = -ball_speed_y
                 self.serve = 1
             elif self.serve == 1:
-                self.speed_y = initial_ball_speed
+                self.speed_y = ball_speed_y
                 self.serve = 0
             terminal = True
             self.count = 0

@@ -39,12 +39,15 @@ font = pygame.font.Font('freesansbold.ttf', 18)
 my_speed = 15.
 ai_speed = 15.
 
-HIT_REWARD = 0.5
-LOSE_REWARD = -1
-SCORE_REWARD = 1
+HIT_REWARD = 1.0
+LOSE_REWARD = -1.0
+SCORE_REWARD = 1.0
 
 def ReturnName():
     return 'pong'
+
+def Return_Num_Action():
+    return 3
 
 class GameState:
     def __init__(self):
@@ -56,7 +59,9 @@ class GameState:
         self.speed_x, self.speed_y = 9., 9.
         self.serve = 0
         self.count = 0
- 
+        self.ball_speed_x = random.uniform(6.0, 10.0)
+        self.ball_speed_y = random.uniform(5.0, 13.0)
+
     def terminate():
         pygame.quit()
         sys.exit()
@@ -65,7 +70,11 @@ class GameState:
         pygame.event.pump()
         reward = 0
         increase_speed = 0.
-        initial_ball_speed = 9.
+
+        if self.count == 0:
+            self.ball_speed_x = random.uniform(6.0, 10.0)
+            self.ball_speed_y = random.uniform(5.0, 13.0)
+            self.count = 1
 
         # if sum(input_vect) != 1.:
         #     raise ValueError('Multiple input actions!')
@@ -82,7 +91,7 @@ class GameState:
 
         screen.blit(background,(0,0))
         frame = pygame.draw.rect(screen,(255,255,255),Rect((5,5),(630,470)),2)
-        middle_line = pygame.draw.aaline(screen,(255,255,255),(330,5),(330,475))
+        middle_line = pygame.draw.aaline(screen,(255,255,255),(315,5),(315,475))
         screen.blit(bar1,(self.bar1_x,self.bar1_y))
         screen.blit(bar2,(self.bar2_x,self.bar2_y))
         screen.blit(circle,(self.circle_x,self.circle_y))
@@ -173,12 +182,12 @@ class GameState:
             reward = LOSE_REWARD
             self.circle_x, self.circle_y = 320., 232.5
             self.bar1_y, self.bar2_y = 232.5, 232.5
-            self.speed_x = initial_ball_speed
+            self.speed_x = self.ball_speed_x
             if self.serve == 0:
-                self.speed_y = -initial_ball_speed
+                self.speed_y = -self.ball_speed_y
                 self.serve = 1
             elif self.serve == 1:
-                self.speed_y = initial_ball_speed
+                self.speed_y = self.ball_speed_y
                 self.serve = 0
             terminal = True
             self.count = 0
@@ -188,12 +197,12 @@ class GameState:
             reward = SCORE_REWARD
             self.circle_x, self.circle_y = 307.5, 232.5
             self.bar1_y, self.bar2_y = 232.5, 232.5
-            self.speed_x = initial_ball_speed
+            self.speed_x = self.ball_speed_x
             if self.serve == 0:
-                self.speed_y = -initial_ball_speed
+                self.speed_y = -self.ball_speed_y
                 self.serve = 1
             elif self.serve == 1:
-                self.speed_y = initial_ball_speed
+                self.speed_y = self.ball_speed_y
                 self.serve = 0
             terminal = True
             self.count = 0
@@ -213,15 +222,30 @@ class GameState:
 
         pygame.display.update()
 
-        if max(self.bar1_score, self.bar2_score) >= 10:
+        if max(self.bar1_score, self.bar2_score) >= 12:
             self.bar1_score = 0
             self.bar2_score = 0
             terminal = True
             self.count = 0
         
-        if self.count == 10:
-            terminal = True 
-            self.count = 0
+        # If self.count == 10 then initialize the game
+        if self.count == 13:
+            self.circle_x, self.circle_y = 320., 232.5
+            self.bar1_y, self.bar2_y = 232.5, 232.5
+            
+            self.ball_speed_x = random.uniform(6.0, 10.0)
+            self.ball_speed_y = random.uniform(5.0, 13.0)
+
+            self.speed_x = self.ball_speed_x
+
+            if self.serve == 0:
+                self.speed_y = -self.ball_speed_y
+                self.serve = 1
+            elif self.serve == 1:
+                self.speed_y = self.ball_speed_y
+                self.serve = 0
+            terminal = True
+            self.count = 1
 
         return image_data, reward, terminal
 
