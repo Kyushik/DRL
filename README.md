@@ -4,8 +4,14 @@
 This repository is the codes for `Deep Reinforcement Learning`
 <br> I verified my codes with games. The games are made with `pygame`. I made some of the game codes and others are from other githubs. 
 <br> I set up the DQN code as follows. 
-* Deep Q Network
-* Double Deep Q Network
+* [Human-level Control Through Deep Reinforcement Learning](https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf)
+* [Deep Reinforcement Learning with Double Q-Learning](https://arxiv.org/abs/1509.06461)
+* [Prioritized Experience Replay](https://arxiv.org/abs/1511.05952)
+* [Dueling Network Architecture for Deep Reinforcement Learning](https://arxiv.org/abs/1511.06581)
+
+
+
+This is the [PPT file](https://www.dropbox.com/s/0o72oqe7f5kip4z/DQN.pdf?dl=0) for the `description of DQN codes` that I implemented. 
 
 ---
 ## Environment
