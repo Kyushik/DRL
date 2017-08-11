@@ -24,8 +24,8 @@ Num_action = game.Return_Num_Action()
 # 30000 / 29900
 Num_replay_memory = 35000
 Num_start_training = 34900
-Num_training = 500000
-Num_update = 5000 - 10
+Num_training = 300000
+Num_update = 3000 - 10
 Num_batch = 32
 Num_test = 100000
 Num_skipFrame = 4

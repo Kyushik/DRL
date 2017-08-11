@@ -481,7 +481,7 @@ while True:
 		score = 0
 		episode += 1
 
-	if len(plot_x) == Num_plot_episode:
+	if len(plot_x) % Num_plot_episode == 0 and len(plot_x) != 0:
 		plt.xlabel('Episode')
 		plt.ylabel('Score')
 		plt.title('Prioritized Experience Replay')

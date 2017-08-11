@@ -191,7 +191,8 @@ y_prediction = tf.placeholder(tf.float32, shape = [None])
 y_target = tf.reduce_sum(tf.multiply(output, action_target), reduction_indices = 1)
 Loss = tf.reduce_mean(tf.square(y_prediction - y_target))
 # train_step = tf.train.RMSPropOptimizer(Learning_rate).minimize(Loss)
-train_step = tf.train.AdamOptimizer(learning_rate = Learning_rate, epsilon = 1e-04).minimize(Loss)
+train_step = tf.train.AdamOptimizer(learning_rate = Learning_rate, epsilon = 1e-02).minimize(Loss)
+# train_step = tf.train.RMSPropOptimizer(learning_rate = Learning_rate, momentum = 0.95).minimize(Loss)
 
 # Initialize variables
 config = tf.ConfigProto()
@@ -400,7 +401,7 @@ while True:
 		episode += 1
 
 
-	if len(plot_x) == Num_plot_episode:
+	if len(plot_x) % Num_plot_episode == 0 and len(plot_x) != 0:
 		plt.xlabel('Episode')
 		plt.ylabel('Score')
 		plt.title('Deep Q Learning')
