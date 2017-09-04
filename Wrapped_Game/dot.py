@@ -80,8 +80,6 @@ class GameState:
 		self.count_init = 0
 		self.reward_food = 3
 
-		self.frame_step([1, 0, 0, 0])
-
 	def reinit(self):
 		#set up the variables
 		self.score = 0

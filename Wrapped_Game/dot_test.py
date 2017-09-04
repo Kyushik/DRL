@@ -78,16 +78,16 @@ class GameState:
 		self.Enemy_list = self.Coordinate_info[1]
 		self.Food_list = self.Coordinate_info[2]
 		self.count_init = 0
-		self.reward_food = 3
+		self.reward_food = 1
+		self.reward_enemy = -100
 
-		self.frame_step([1, 0, 0, 0])
+		self.count_food = 0
 
 	def reinit(self):
 		#set up the variables
 		self.score = 0
 		self.Last_enemy_move = []
 
-		self.frame_step([1, 0, 0, 0])
 		difficulty = 'Easy'
 
 		self.Game_board_state, self.Coordinate_info = self.drawGameBoard(difficulty)
@@ -99,7 +99,8 @@ class GameState:
 		self.Enemy_list = self.Coordinate_info[1]
 		self.Food_list = self.Coordinate_info[2]
 		self.count_init = 0
-
+		self.count_food = 0
+		
 	# Main function
 	def frame_step(self, input):									
 		self.checkForQuit()
@@ -155,10 +156,8 @@ class GameState:
 			self.My_position[0] = self.My_position[0] - 1
 		
 		reward = -0.01
-		reward_waiting = -0.0
-		# self.score += reward
 
-		#move enemy 
+		# #move enemy 
 		for i in range(len(self.Enemy_list)):
 			valid_move_list = self.ValidMove_list((self.Enemy_list[i][0], self.Enemy_list[i][1]))
 			if self.Last_enemy_move[i] in valid_move_list:
@@ -187,6 +186,7 @@ class GameState:
 				self.Last_enemy_move[i] = 'East'
 			else:
 				self.Last_enemy_move[i] = 'Stop'
+
 		self.checkForQuit()
 
 		# Draw food
@@ -197,18 +197,24 @@ class GameState:
 		# Eat the foods 
 		if self.My_position in self.Food_list:
 			self.Food_list.remove(self.My_position)
-			if self.reward_food < 0.001:
-				self.reward_food = 0.001
+
 			reward = self.reward_food
 			self.score += 1.0
+			self.count_food += 1
 			self.Food_list.append(self.Get_random_position())
 
-		self.reward_food = self.reward_food + reward_waiting
+		# if self.count_food == 5:
+		# 	terminal = True 
+		# 	image_data = pygame.surfarray.array3d(pygame.display.get_surface())
+
+		# 	self.reinit()
+		# 	pygame.display.update()
+		# 	return image_data, reward, terminal
 
 		# Killed by enemy
 		if self.My_position in self.Enemy_list:
-			reward = -5.0
-			self.score -= 5.0
+			reward = self.reward_enemy
+			self.score -= self.reward_enemy
 			image_data = pygame.surfarray.array3d(pygame.display.get_surface())
 			# print('\n')
 			# print('----------------------------------------------------------')
@@ -263,11 +269,19 @@ class GameState:
 							
 	def drawGameBoard(self,difficulty):
 		if difficulty == 'Easy':
-			Game_board_state = [[ 0,  0,  0 ,  0,  0 ],\
-								[ 0,  0,  0 ,  0,  0 ],\
-								['@', 0, '+',  0, '-'],\
-								[ 0,  0,  0 ,  0,  0 ],\
-								[ 0,  0,  0 ,  0,  0 ]]
+			# Game_board_state = [[ 0,  0, 0, 0,  0, 0, 0 ],\
+			# 					[ 0,  0, 0, 0,  0, 0, 0 ],\
+			# 					[ 0,  0, 0, 0,  0, 0, 0 ],\
+			# 					['@', 0, 0,'+', 0, 0,'-'],\
+			# 					[ 0,  0, 0, 0,  0, 0, 0 ],\
+			# 					[ 0,  0, 0, 0,  0, 0, 0 ],\
+			# 					[ 0,  0, 0, 0,  0, 0, 0 ]]
+
+			Game_board_state = [[ 0,  0, 0,  0, 0 ],\
+								[ 0,  0, 0,  0, 0 ],\
+								['@', 0,'+', 0,'-'],\
+								[ 0,  0, 0,  0, 0 ],\
+								[ 0,  0, 0,  0, 0 ]]
 
 
 			# Game_board_state = [[ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, '@', 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],\
@@ -381,7 +395,9 @@ class GameState:
 			random_x = random.randint(1,GAME_BOARD_HORIZONTAL-1)
 			random_y = random.randint(1,GAME_BOARD_VERTICAL-1)
 
-			if self.Game_board_state[random_y][random_x] != 1:
+			if self.Game_board_state[random_y][random_x] != 1 and \
+			   self.Game_board_state[random_y][random_x] != '-' and \
+			   self.Game_board_state[random_y][random_x] != '@':
 				return [random_x, random_y]
 				break
 
