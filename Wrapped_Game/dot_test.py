@@ -224,7 +224,6 @@ class GameState:
 			terminal = True 
 
 			self.reinit()
-			pygame.display.update()
 			return image_data, reward, terminal
 
 		score_SURF, score_RECT = self.makeText('score: ' + str(self.score) + '      ', WHITE, BLACK, WINDOW_WIDTH - 200, 10)
