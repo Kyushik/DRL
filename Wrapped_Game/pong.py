@@ -14,7 +14,7 @@ position = 5, 325
 os.environ['SDL_VIDEO_WINDOW_POS'] = str(position[0]) + "," + str(position[1])
 pygame.init()
 screen = pygame.display.set_mode((640,480),0,32)
-#screen = pygame.display.set_mode((640,480),pygame.NOFRAME)
+
 #Creating 2 bars, a ball and background.
 back = pygame.Surface((640,480))
 background = back.convert()
@@ -33,7 +33,6 @@ circ_sur = pygame.Surface((15,15))
 circ = pygame.draw.circle(circ_sur,(255,255,255),(int(15/2),int(15/2)),int(15/2))
 circle = circ_sur.convert()
 circle.set_colorkey((0,0,0))
-# font = pygame.font.SysFont("calibri",40)
 font = pygame.font.Font('freesansbold.ttf', 18)
 
 my_speed = 15.
@@ -76,9 +75,6 @@ class GameState:
             self.ball_speed_y = random.uniform(5.0, 13.0)
             self.count = 1
 
-        # if sum(input_vect) != 1.:
-        #     raise ValueError('Multiple input actions!')
-
         if input_vect[1] == 1:#Key up
             self.bar1_move = -my_speed
         elif input_vect[2] == 1:#Key down
@@ -100,18 +96,6 @@ class GameState:
 
         self.bar1_y += self.bar1_move
         
-        #AI of the computer.
-        #Manual mode
-        # for event in pygame.event.get():
-        #     if event.type == pygame.QUIT:
-        #         terminate()
-        #     if event.type == KEYUP:
-        #         if event.key == K_UP:
-        #             self.bar2_y -= ai_speed
-        #         elif event.key == K_DOWN:
-        #             self.bar2_y += ai_speed
-
-        #Auto mode
         if self.circle_x >= 305.: #305
             if not self.bar2_y == self.circle_y + 7.5:
                 if self.bar2_y < self.circle_y + 7.5: # 7.5
@@ -128,55 +112,36 @@ class GameState:
         elif self.bar2_y <= 10.: self.bar2_y = 10.
 
         #since i don't know anything about collision, ball hitting bars goes like this.
+        # I hit the bar!
         if self.circle_x <= self.bar1_x + 15.:
             if self.circle_y >= self.bar1_y - bar_my_size/2 and self.circle_y <= self.bar1_y + bar_my_size/2:
                 self.circle_x = 20.
                 self.speed_x = -(self.speed_x - increase_speed)
                 
-                # if self.speed_x > 9.9:
-                #     self.speed_x = 9.9
-                # elif self.speed_x < -9.9:
-                #     self.speed_x = -9.9
-
                 if self.speed_y > 0:
                     self.speed_y += increase_speed
                 else:
                     self.speed_y -= increase_speed
-
-                # if self.speed_y > 9.9:
-                #     self.speed_y = 9.9
-                # elif self.speed_y < -9.9:
-                #     self.speed_y = -9.9
-                
+              
                 reward = HIT_REWARD
                 self.count += 1
 
+        # Enemy hit the bar!
         if self.circle_x >= self.bar2_x - 15.:
             if self.circle_y >= self.bar2_y - bar_enemy_size/2 and self.circle_y <= self.bar2_y + bar_enemy_size/2:
                 self.circle_x = 605.
                 self.speed_x = -(self.speed_x + increase_speed)
 
-                # if self.speed_x > 9.9:
-                #     self.speed_x = 9.9
-                # elif self.speed_x < -9.9:
-                #     self.speed_x = -9.9
-
                 if self.speed_y > 0:
                     self.speed_y += increase_speed
                 else:
                     self.speed_y -= increase_speed
 
-                # if self.speed_y > 9.9:
-                #     self.speed_y = 9.9
-                # elif self.speed_y < -9.9:
-                #     self.speed_y = -9.9
                 self.count += 1
 
-        # print('speedx: ' + str(self.speed_x))
-        # print('speedy: ' + str(self.speed_y))
         terminal = False
 
-        # scoring
+        # I Lose :( 
         if self.circle_x < 5.:
             self.bar2_score += 1
             reward = LOSE_REWARD
@@ -192,6 +157,7 @@ class GameState:
             terminal = True
             self.count = 0
 
+        # I Win!! :) 
         elif self.circle_x > 620.:
             self.bar1_score += 1
             reward = SCORE_REWARD
@@ -245,7 +211,7 @@ class GameState:
                 self.speed_y = self.ball_speed_y
                 self.serve = 0
             terminal = True
-            self.count = 1
+            self.count = 0
 
         return image_data, reward, terminal
 
