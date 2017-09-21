@@ -68,6 +68,7 @@ class GameState:
         self.init = True
         self.my_score = 0
         self.enemy_score = 0
+        self.hit_count = 0
 
         self.my_bar_position = my_bar_init_position
 
@@ -99,6 +100,8 @@ class GameState:
             self.ball_position_x = ball_init_position_x
             self.ball_position_y = ball_init_position_y
             
+            self.hit_count = 0
+
             random_start_x = random.randint(0, 1)
             random_start_y = random.randint(0, 1)
 
@@ -174,6 +177,7 @@ class GameState:
                     self.ball_speed_y = - self.ball_speed_y  
             
             reward = 1
+            self.hit_count += 1
         
         # Lose :( 
         if self.ball_position_x <= 0:
@@ -218,6 +222,12 @@ class GameState:
             reward = 1
             terminal = True
             self.init = True 
+
+        # If bar hit the ball more than hit count threshold, game is finished!
+        if self.hit_count == 10:
+            reward = 1
+            terminal = True
+            self.init = True
 
         # Fill background color
         DISPLAYSURF.fill(BLACK)
