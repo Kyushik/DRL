@@ -177,7 +177,7 @@ class GameState:
                     self.ball_speed_y = - self.ball_speed_y  
             
                 reward = 1
-            self.hit_count += 1
+                self.hit_count += 1
         
         # Lose :( 
         if self.ball_position_x <= 0:
