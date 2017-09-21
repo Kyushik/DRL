@@ -1,46 +1,32 @@
-#!/usr/bin/env python
-#Modified from http://www.pygame.org/project-Very+simple+Pong+game-816-.html
+# Atari pong
+# By KyushikMin kyushikmin@gamil.com
+# http://mmc.hanyang.ac.kr 
 
-import numpy
-import pygame
-import os
+import random, sys, time, math, pygame
 from pygame.locals import *
-from sys import exit
-import random
-import pygame.surfarray as surfarray
-import matplotlib.pyplot as plt
+import numpy as np
+import copy
 
-position = 5, 325
-os.environ['SDL_VIDEO_WINDOW_POS'] = str(position[0]) + "," + str(position[1])
-pygame.init()
-screen = pygame.display.set_mode((640,480),0,32)
+# Window Information
+FPS = 30 
+WINDOW_WIDTH = 480
+WINDOW_HEIGHT = 360
 
-#Creating 2 bars, a ball and background.
-back = pygame.Surface((640,480))
-background = back.convert()
-background.fill((0,0,0))
+HALF_WINDOW_WIDTH = int(WINDOW_WIDTH / 2)
+HALF_WINDOW_HEIGHT = int(WINDOW_HEIGHT / 2)
 
-bar_my_size = 50.
-bar_my = pygame.Surface((10,bar_my_size))
-
-bar_enemy_size = 100.
-bar_enemy = pygame.Surface((10,100))
-bar1 = bar_my.convert()
-bar1.fill((0,255,255))
-bar2 = bar_enemy.convert()
-bar2.fill((255,255,255))
-circ_sur = pygame.Surface((15,15))
-circ = pygame.draw.circle(circ_sur,(255,255,255),(int(15/2),int(15/2)),int(15/2))
-circle = circ_sur.convert()
-circle.set_colorkey((0,0,0))
-font = pygame.font.Font('freesansbold.ttf', 18)
-
-my_speed = 15.
-ai_speed = 15.
-
-HIT_REWARD = 1.0
-LOSE_REWARD = -1.0
-SCORE_REWARD = 1.0
+# Colors
+#				 R    G    B
+WHITE        = (255, 255, 255)
+BLACK		 = (  0,   0,   0)
+RED 		 = (200,  72,  72)
+LIGHT_ORANGE = (198, 108,  58)
+ORANGE       = (180, 122,  48)
+GREEN		 = ( 72, 160,  72)
+BLUE 		 = ( 66,  72, 200)
+YELLOW 		 = (162, 162,  42)
+NAVY         = ( 75,   0, 130)
+PURPLE       = (143,   0, 255)
 
 def ReturnName():
     return 'pong'
@@ -48,171 +34,226 @@ def ReturnName():
 def Return_Num_Action():
     return 3
 
+my_bar_width = 10
+my_bar_height = 50
+my_bar_init_position = (WINDOW_HEIGHT - my_bar_height)/2
+my_bar_speed = 5
+
+enemy_bar_width = 10
+enemy_bar_height = 100
+enemy_bar_init_position = (WINDOW_HEIGHT - enemy_bar_height)/2
+enemy_bar_speed = 5
+
+ball_init_position_x = WINDOW_WIDTH / 2
+ball_init_position_y = WINDOW_HEIGHT / 2 
+
+ball_radius = 5
+
 class GameState:
     def __init__(self):
-        self.bar1_x, self.bar2_x = 10. , 620.
-        self.bar1_y, self.bar2_y = 232.5 , 232.5
-        self.circle_x, self.circle_y = 307.5, 232.5 # 307.5, 232.5
-        self.bar1_move, self.bar2_move = 0. , 0.
-        self.bar1_score, self.bar2_score = 0,0
-        self.speed_x, self.speed_y = 9., 9.
-        self.serve = 0
-        self.count = 0
-        self.ball_speed_x = random.uniform(6.0, 10.0)
-        self.ball_speed_y = random.uniform(5.0, 13.0)
+        global FPS_CLOCK, DISPLAYSURF, BASIC_FONT
 
-    def terminate():
+        pygame.init()
+        FPS_CLOCK = pygame.time.Clock()
+
+        DISPLAYSURF = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+
+        pygame.display.set_caption('Pong')
+        # pygame.display.set_icon(pygame.image.load('./Qar_Sim/icon_resize2.png'))
+
+        BASIC_FONT = pygame.font.Font('freesansbold.ttf', 16)
+
+        # Set initial parameters
+
+        self.init = True
+        self.my_score = 0
+        self.enemy_score = 0
+
+        self.my_bar_position = my_bar_init_position
+
+        self.enemy_bar_position = enemy_bar_init_position
+
+        self.ball_position_x = ball_init_position_x
+        self.ball_position_y = ball_init_position_y
+
+        random_start_x = random.randint(0, 1)
+        random_start_y = random.randint(0, 1)
+
+        if random_start_x == 0:
+            self.ball_speed_x = - random.uniform(6.0, 9.0)
+        else:
+            self.ball_speed_x = random.uniform(6.0, 9.0)
+
+        if random_start_y == 0:
+            self.ball_speed_y = -random.uniform(6.0, 9.0)
+        else:
+            self.ball_speed_y = random.uniform(6.0, 9.0)
+
+
+    def frame_step(self, input): # Game loop
+        # Initial settings
+        if self.init == True:
+            self.my_bar_position = my_bar_init_position
+            self.enemy_bar_position = enemy_bar_init_position
+
+            self.ball_position_x = ball_init_position_x
+            self.ball_position_y = ball_init_position_y
+            
+            random_start_x = random.randint(0, 1)
+            random_start_y = random.randint(0, 1)
+
+            if random_start_x == 0:
+                self.ball_speed_x = - random.uniform(6.0, 9.0)
+            else:
+                self.ball_speed_x = random.uniform(6.0, 9.0)
+
+            if random_start_y == 0:
+                self.ball_speed_y = -random.uniform(6.0, 9.0)
+            else:
+                self.ball_speed_y = random.uniform(6.0, 9.0)
+
+            self.init = False
+
+        # Key settings
+        for event in pygame.event.get(): # event loop
+            if event.type == QUIT:
+                self.terminate()
+
+        # Control the bar
+        if input[1] == 1:
+            self.my_bar_position -= my_bar_speed			
+        elif input[2] == 1:
+            self.my_bar_position += my_bar_speed
+
+        # Constraint of the bar
+        if self.my_bar_position <= 0:
+            self.my_bar_position = 0
+
+        if self.my_bar_position >= WINDOW_HEIGHT - my_bar_height:
+            self.my_bar_position = WINDOW_HEIGHT - my_bar_height
+
+        # Move the ball
+        self.ball_position_x += self.ball_speed_x
+        self.ball_position_y += self.ball_speed_y
+
+        # Move the enemy
+        self.enemy_bar_position = self.ball_position_y - (enemy_bar_height/2)
+
+        # Constraint of enemy bar
+        if self.enemy_bar_position <= 0:
+            self.enemy_bar_position = 0
+
+        if self.enemy_bar_position >= WINDOW_HEIGHT - enemy_bar_height:
+            self.enemy_bar_position = WINDOW_HEIGHT - enemy_bar_height
+
+        # Ball is bounced when the ball hit the wall
+        if self.ball_position_y <= 0 or self.ball_position_y >= WINDOW_HEIGHT:
+            self.ball_speed_y = - self.ball_speed_y
+        
+        reward = 0
+        terminal = False 
+
+        # Ball is bounced when the ball hit the bar
+        if self.ball_position_x <= my_bar_width:
+            # Hit the ball!
+            if self.ball_position_y <=self. my_bar_position + my_bar_height and self.ball_position_y >= self.my_bar_position:
+                self.ball_position_x = my_bar_width + 1
+                self.ball_speed_x = - self.ball_speed_x
+
+                # When the ball is at the corner
+                if self.ball_position_y >= WINDOW_HEIGHT:
+                    self.ball_position_x = my_bar_width + 1
+                    self.ball_position_y = WINDOW_HEIGHT -1 
+                    self.ball_speed_x = - self.ball_speed_x
+                    self.ball_speed_y = - self.ball_speed_y
+
+                if self.ball_position_y <= 0:
+                    self.ball_position_x = my_bar_width +1
+                    self.ball_position_y = 1 
+                    self.ball_speed_x = - self.ball_speed_x
+                    self.ball_speed_y = - self.ball_speed_y  
+            
+            reward = 1
+        
+        # Lose :( 
+        if self.ball_position_x <= 0:
+            self.enemy_score += 1
+            
+            if self.enemy_score > 10:
+                self.enemy_score = 0
+                self.my_score = 0
+            
+            reward = -1
+            terminal = True
+            self.init = True
+
+        # The ball is bounced when enemy hit the ball
+        if self.ball_position_x >= WINDOW_WIDTH - enemy_bar_width:
+            # enemy hit the ball
+            if self.ball_position_y <= self.enemy_bar_position + enemy_bar_height and self.ball_position_y >= self.enemy_bar_position:
+                self.ball_position_x = WINDOW_WIDTH - enemy_bar_width - 1
+                self.ball_speed_x = - self.ball_speed_x
+
+                # When the ball is at the corner
+                if self.ball_position_y >= WINDOW_HEIGHT:
+                    self.ball_position_x = WINDOW_WIDTH - enemy_bar_width -1
+                    self.ball_position_y = WINDOW_HEIGHT -1 
+                    self.ball_speed_x = - self.ball_speed_x
+                    self.ball_speed_y = - self.ball_speed_y
+
+                if self.ball_position_y <= 0:
+                    self.ball_position_x = WINDOW_WIDTH - enemy_bar_width -1
+                    self.ball_position_y = 1 
+                    self.ball_speed_x = - self.ball_speed_x
+                    self.ball_speed_y = - self.ball_speed_y                
+
+        # WIN!! :)
+        if self.ball_position_x >= WINDOW_WIDTH:
+            self.my_score += 1
+           
+            if self.my_score > 10:
+                self.enemy_score = 0
+                self.my_score = 0
+            
+            reward = 1
+            terminal = True
+            self.init = True 
+
+        # Fill background color
+        DISPLAYSURF.fill(BLACK)
+
+        # Display scores
+        self.score_msg(self.my_score, ((WINDOW_WIDTH/2) - 45, (WINDOW_HEIGHT/2)-10))
+        self.score_msg(self.enemy_score, ((WINDOW_WIDTH/2) + 35, (WINDOW_HEIGHT/2)-10))
+
+        # Draw bar
+        my_bar_rect = pygame.Rect(0, self.my_bar_position, my_bar_width, my_bar_height)
+        pygame.draw.rect(DISPLAYSURF, RED, my_bar_rect)
+
+        enemy_bar_rect = pygame.Rect(WINDOW_WIDTH - enemy_bar_width, self.enemy_bar_position, enemy_bar_width, enemy_bar_height)
+        pygame.draw.rect(DISPLAYSURF, BLUE, enemy_bar_rect)
+
+        # Draw ball
+        pygame.draw.circle(DISPLAYSURF, WHITE, (int(self.ball_position_x), int(self.ball_position_y)), ball_radius, 0)
+        
+        # Draw line for seperate game and info
+        pygame.draw.line(DISPLAYSURF, WHITE, (WINDOW_WIDTH/2, 0), (WINDOW_WIDTH/2, WINDOW_HEIGHT), 3)
+
+        pygame.display.update()
+        image_data = pygame.surfarray.array3d(pygame.display.get_surface())
+        return image_data, reward, terminal
+
+    # Exit the game
+    def terminate(self):
         pygame.quit()
         sys.exit()
 
-    def frame_step(self,input_vect):
-        pygame.event.pump()
-        reward = 0
-        increase_speed = 0.
-
-        if self.count == 0:
-            self.ball_speed_x = random.uniform(6.0, 10.0)
-            self.ball_speed_y = random.uniform(5.0, 13.0)
-            self.count = 1
-
-        if input_vect[1] == 1:#Key up
-            self.bar1_move = -my_speed
-        elif input_vect[2] == 1:#Key down
-            self.bar1_move = my_speed
-        else: # don't move
-            self.bar1_move = 0
-                
-        self.score1 = font.render(str(self.bar1_score), True,(255,255,255))
-        self.score2 = font.render(str(self.bar2_score), True,(255,255,255))
-
-        screen.blit(background,(0,0))
-        frame = pygame.draw.rect(screen,(255,255,255),Rect((5,5),(630,470)),2)
-        middle_line = pygame.draw.aaline(screen,(255,255,255),(315,5),(315,475))
-        screen.blit(bar1,(self.bar1_x,self.bar1_y))
-        screen.blit(bar2,(self.bar2_x,self.bar2_y))
-        screen.blit(circle,(self.circle_x,self.circle_y))
-        screen.blit(self.score1,(250.,210.))
-        screen.blit(self.score2,(380.,210.))
-
-        self.bar1_y += self.bar1_move
-        
-        if self.circle_x >= 305.: #305
-            if not self.bar2_y == self.circle_y + 7.5:
-                if self.bar2_y < self.circle_y + 7.5: # 7.5
-                    self.bar2_y += ai_speed
-                if  self.bar2_y > self.circle_y - 42.5: #-42.5
-                    self.bar2_y -= ai_speed
-            else:
-                self.bar2_y == self.circle_y + 7.5
-        
-        # bounds of movement
-        if self.bar1_y >= 420.: self.bar1_y = 420.
-        elif self.bar1_y <= 10. : self.bar1_y = 10.
-        if self.bar2_y >= 420.: self.bar2_y = 420.
-        elif self.bar2_y <= 10.: self.bar2_y = 10.
-
-        #since i don't know anything about collision, ball hitting bars goes like this.
-        # I hit the bar!
-        if self.circle_x <= self.bar1_x + 15.:
-            if self.circle_y >= self.bar1_y - bar_my_size/2 and self.circle_y <= self.bar1_y + bar_my_size/2:
-                self.circle_x = 20.
-                self.speed_x = -(self.speed_x - increase_speed)
-                
-                if self.speed_y > 0:
-                    self.speed_y += increase_speed
-                else:
-                    self.speed_y -= increase_speed
-              
-                reward = HIT_REWARD
-                self.count += 1
-
-        # Enemy hit the bar!
-        if self.circle_x >= self.bar2_x - 15.:
-            if self.circle_y >= self.bar2_y - bar_enemy_size/2 and self.circle_y <= self.bar2_y + bar_enemy_size/2:
-                self.circle_x = 605.
-                self.speed_x = -(self.speed_x + increase_speed)
-
-                if self.speed_y > 0:
-                    self.speed_y += increase_speed
-                else:
-                    self.speed_y -= increase_speed
-
-                self.count += 1
-
-        terminal = False
-
-        # I Lose :( 
-        if self.circle_x < 5.:
-            self.bar2_score += 1
-            reward = LOSE_REWARD
-            self.circle_x, self.circle_y = 320., 232.5
-            self.bar1_y, self.bar2_y = 232.5, 232.5
-            self.speed_x = self.ball_speed_x
-            if self.serve == 0:
-                self.speed_y = -self.ball_speed_y
-                self.serve = 1
-            elif self.serve == 1:
-                self.speed_y = self.ball_speed_y
-                self.serve = 0
-            terminal = True
-            self.count = 0
-
-        # I Win!! :) 
-        elif self.circle_x > 620.:
-            self.bar1_score += 1
-            reward = SCORE_REWARD
-            self.circle_x, self.circle_y = 307.5, 232.5
-            self.bar1_y, self.bar2_y = 232.5, 232.5
-            self.speed_x = self.ball_speed_x
-            if self.serve == 0:
-                self.speed_y = -self.ball_speed_y
-                self.serve = 1
-            elif self.serve == 1:
-                self.speed_y = self.ball_speed_y
-                self.serve = 0
-            terminal = True
-            self.count = 0
-
-        # collisions on sides
-        if self.circle_y <= 10.:
-            self.speed_y = -self.speed_y
-            self.circle_y = 10.
-        elif self.circle_y >= 457.5:
-            self.speed_y = -self.speed_y
-            self.circle_y = 457.5
-
-        self.circle_x += self.speed_x
-        self.circle_y += self.speed_y
-
-        image_data = pygame.surfarray.array3d(pygame.display.get_surface())
-
-        pygame.display.update()
-
-        if max(self.bar1_score, self.bar2_score) >= 12:
-            self.bar1_score = 0
-            self.bar2_score = 0
-            terminal = True
-            self.count = 0
-        
-        # If self.count == 10 then initialize the game
-        if self.count == 13:
-            self.circle_x, self.circle_y = 320., 232.5
-            self.bar1_y, self.bar2_y = 232.5, 232.5
-            
-            self.ball_speed_x = random.uniform(6.0, 10.0)
-            self.ball_speed_y = random.uniform(5.0, 13.0)
-
-            self.speed_x = self.ball_speed_x
-
-            if self.serve == 0:
-                self.speed_y = -self.ball_speed_y
-                self.serve = 1
-            elif self.serve == 1:
-                self.speed_y = self.ball_speed_y
-                self.serve = 0
-            terminal = True
-            self.count = 0
-
-        return image_data, reward, terminal
-
-
+    # Display score 
+    def score_msg(self, score, position):
+        scoreSurf = BASIC_FONT.render(str(score), True, WHITE)
+        scoreRect = scoreSurf.get_rect()
+        scoreRect.topleft = position
+        DISPLAYSURF.blit(scoreSurf, scoreRect)
+    	
+if __name__ == '__main__':
+	main()
