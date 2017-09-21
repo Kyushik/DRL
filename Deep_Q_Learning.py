@@ -29,7 +29,6 @@ Num_update = Deep_Parameters.Num_update
 Num_batch = Deep_Parameters.Num_batch
 Num_test = Deep_Parameters.Num_test
 Num_skipFrame = Deep_Parameters.Num_skipFrame
-Is_skip = Deep_Parameters.Is_skip
 Num_stackFrame = Deep_Parameters.Num_stackFrame
 Num_colorChannel = Deep_Parameters.Num_colorChannel
 
@@ -110,14 +109,27 @@ def assign_network_to_target():
 	sess.run(update_bfc2)
 	sess.run(update_bfc3)
 
-def resize_and_norm(observation):
+# def resize_and_norm(observation):
+# 	observation_out = cv2.resize(observation, (img_size, img_size))
+# 	if Num_colorChannel == 1:
+# 		observation_out = cv2.cvtColor(observation_out, cv2.COLOR_BGR2GRAY)
+# 		observation_out = np.reshape(observation_out, (img_size, img_size, 1))
+
+# 	observation_out = (observation_out - (255.0 / 2)) / (255.0 / 2)
+# 	return observation_out 
+
+def resize_input(observation):
 	observation_out = cv2.resize(observation, (img_size, img_size))
 	if Num_colorChannel == 1:
 		observation_out = cv2.cvtColor(observation_out, cv2.COLOR_BGR2GRAY)
 		observation_out = np.reshape(observation_out, (img_size, img_size, 1))
-
-	observation_out = (observation_out - (255.0 / 2)) / (255.0 / 2)
+	
+	observation_out = np.uint8(observation_out)
 	return observation_out 
+
+def normalize_input(observation):
+	observation_out = (observation - (255.0/2)) / (255.0 / 2)
+	return observation_out
 
 # Input 
 x_image = tf.placeholder(tf.float32, shape = [None, img_size, img_size, Num_colorChannel * Num_stackFrame])
@@ -226,15 +238,17 @@ hour = str(datetime.datetime.now().hour)
 game_state = game.GameState()
 action = np.zeros([Num_action])
 observation, reward, terminal = game_state.frame_step(action)
-observation = resize_and_norm(observation)
-observation_copy = copy.deepcopy(observation)
+observation = resize_input(observation)
 
 observation_in = np.zeros([img_size, img_size, Num_colorChannel * Num_stackFrame])
 observation_next_in = np.zeros([img_size, img_size, Num_colorChannel * Num_stackFrame])
 
 observation_set = []
+
+start_time = time.time() 
+
 for i in range(Num_skipFrame * Num_stackFrame):
-	observation_set.append(observation_copy)
+	observation_set.append(observation)
 
 # Making replay memory
 for i in range(Num_start_training):
@@ -242,8 +256,9 @@ for i in range(Num_start_training):
 	action[random.randint(0, Num_action - 1)] = 1.0
 
 	observation_next, reward, terminal = game_state.frame_step(action)
-	observation_next = resize_and_norm(observation_next)
-
+	# observation_next = resize_and_norm(observation_next)
+	observation_next = resize_input(observation_next)
+	
 	observation_set.append(observation_next)
 
 	observation_next_in = np.zeros((img_size, img_size, 1))
@@ -255,6 +270,7 @@ for i in range(Num_start_training):
 	del observation_set[0]
 
 	observation_next_in = np.delete(observation_next_in, [0], axis = 2)
+	observation_next_in = np.uint8(observation_next_in)
 
 	Replay_memory.append([observation_in, action, reward, observation_next_in, terminal])
 	
@@ -286,12 +302,13 @@ while True:
 			action[random.randint(0, Num_action - 1)] = 1
 		else:
 			observation_feed = np.reshape(observation_in, (1, img_size, img_size, Num_colorChannel * Num_stackFrame))
+			observation_feed = normalize_input(observation_feed)
 			Q_value = output.eval(feed_dict={x_image: observation_feed})
 			action = np.zeros([Num_action])
 			action[np.argmax(Q_value)] = 1
 
 		observation_next, reward, terminal = game_state.frame_step(action)
-		observation_next = resize_and_norm(observation_next)
+		observation_next = resize_input(observation_next)
 
 		observation_set.append(observation_next)
 
@@ -304,6 +321,7 @@ while True:
 		del observation_set[0]
 
 		observation_next_in = np.delete(observation_next_in, [0], axis = 2)
+		observation_next_in = np.uint8(observation_next_in)
 
 		# Save experience to the Replay memory 
 		Replay_memory.append([observation_in, action, reward, observation_next_in, terminal])	
@@ -318,10 +336,10 @@ while True:
 		minibatch =  random.sample(Replay_memory, Num_batch)
 
 		# Save the each batch data 
-		observation_batch      = [batch[0] for batch in minibatch]
+		observation_batch      = [normalize_input(batch[0]) for batch in minibatch]
 		action_batch           = [batch[1] for batch in minibatch]
 		reward_batch           = [batch[2] for batch in minibatch]
-		observation_next_batch = [batch[3] for batch in minibatch]
+		observation_next_batch = [normalize_input(batch[3]) for batch in minibatch]
 		terminal_batch 	       = [batch[4] for batch in minibatch]
 
 		y_batch = [] 
@@ -352,13 +370,15 @@ while True:
 
 		# Choose the action of testing state
 		observation_feed = np.reshape(observation_in, (1, img_size, img_size, Num_colorChannel * Num_stackFrame))
+		observation_feed = normalize_input(observation_feed)
+
 		Q_value = output.eval(feed_dict={x_image: observation_feed})
 		action = np.zeros([Num_action])
 		action[np.argmax(Q_value)] = 1
 			
 		# Get game state
 		observation_next, reward, terminal = game_state.frame_step(action)
-		observation_next = resize_and_norm(observation_next)
+		observation_next = resize_input(observation_next)
 
 		observation_set.append(observation_next)
 
@@ -371,6 +391,7 @@ while True:
 		del observation_set[0]
 		
 		observation_next_in = np.delete(observation_next_in, [0], axis = 2)
+		observation_next_in = np.uint8(observation_next_in)
 
 		observation_in = observation_next_in 
 
@@ -383,13 +404,14 @@ while True:
 		# p.pushNote(devices[0]["iden"], 'DQN', 'DQN is done')
 		
 		# Finish the Code 
+		print('It takes ' + str(time.time() - start_time) + ' seconds to finish this algorithm!')
 		break	
 
 	step += 1
 	score += reward 
 
 	if terminal == True:
-		print('step: ' + str(step) + ' / '  + 'state: ' + state  + ' / '  + 'epsilon: ' + str(Epsilon) + ' / '  + 'score: ' + str(score)) 
+		print('step: ' + str(step) + ' / '  + 'episode' + str(episode) + ' / ' + 'state: ' + state  + ' / '  + 'epsilon: ' + str(Epsilon) + ' / '  + 'score: ' + str(score)) 
 
 		plot_x.append(episode)
 		plot_y.append(score)
