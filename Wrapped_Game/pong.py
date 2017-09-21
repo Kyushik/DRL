@@ -176,7 +176,7 @@ class GameState:
                     self.ball_speed_x = - self.ball_speed_x
                     self.ball_speed_y = - self.ball_speed_y  
             
-            reward = 1
+                reward = 1
             self.hit_count += 1
         
         # Lose :( 
@@ -186,7 +186,6 @@ class GameState:
             if self.enemy_score > 10:
                 self.enemy_score = 0
                 self.my_score = 0
-            
             reward = -1
             terminal = True
             self.init = True
@@ -251,6 +250,7 @@ class GameState:
 
         pygame.display.update()
         image_data = pygame.surfarray.array3d(pygame.display.get_surface())
+
         return image_data, reward, terminal
 
     # Exit the game
