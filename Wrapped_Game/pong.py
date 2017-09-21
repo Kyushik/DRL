@@ -37,12 +37,12 @@ def Return_Num_Action():
 my_bar_width = 10
 my_bar_height = 50
 my_bar_init_position = (WINDOW_HEIGHT - my_bar_height)/2
-my_bar_speed = 5
+my_bar_speed = 10
 
 enemy_bar_width = 10
 enemy_bar_height = 100
 enemy_bar_init_position = (WINDOW_HEIGHT - enemy_bar_height)/2
-enemy_bar_speed = 5
+enemy_bar_speed = 10
 
 ball_init_position_x = WINDOW_WIDTH / 2
 ball_init_position_y = WINDOW_HEIGHT / 2 
