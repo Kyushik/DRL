@@ -2,12 +2,13 @@
 
 ## Introduction
 This repository is the codes for `Deep Reinforcement Learning`
-<br> I verified my codes with games. The games are made with `pygame`. I made some of the game codes and others are from other githubs. 
+<br> I verified my codes with games. The games are made with `pygame`. I made the games or I modified them to apply for DRL.
 <br> I set up the DQN code as follows. 
 * [Human-level Control Through Deep Reinforcement Learning](https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf)
 * [Deep Reinforcement Learning with Double Q-Learning](https://arxiv.org/abs/1509.06461)
 * [Prioritized Experience Replay](https://arxiv.org/abs/1511.05952)
 * [Dueling Network Architecture for Deep Reinforcement Learning](https://arxiv.org/abs/1511.06581)
+* [Deep Recurrent Q-Learning for Partially Observable MDPs](https://arxiv.org/abs/1507.06527) (In Progress.. :pencil2:)
 
 
 
@@ -30,29 +31,49 @@ This is the [PPT file](https://www.dropbox.com/s/0o72oqe7f5kip4z/DQN.pdf?dl=0) f
 
 ---
 ## Implementation
-1. Change the as game to the game that you want to implement
-```
+The sample code for my environment is `Environment_sample.py`
+
+```python
+# This is sample code for Deep Reinforcement Learning testing environment 
+
+# Import modules
+import sys 
+import numpy as np
+import random
+
+# Import games
+sys.path.append("DQN_GAMES/")
+
+# add as game the one that you want to play!! 
 import pong as game
 import dot  
-import dot_test 
-import tetris 
+import dot_test  
+import tetris  
+import wormy
+import breakout
+
+# Get Number of action and name of game from the game code
+Num_action = game.Return_Num_Action()
+game_name = game.ReturnName()
+
+# Get game state class from game code
+game_state = game.GameState()
+
+while True:
+    # Choose random action
+    action = np.zeros([Num_action])
+    action[random.randint(0, Num_action - 1)] = 1.0
+
+    # You can get next observation, reward and terminal after action
+    observation_next, reward, terminal = game_state.frame_step(action)
 ```
 
-2. Choose the number of action of the game
-```
-#Action Num
-#pong = 3
-#dot, dot_test = 4
-#tetris = 5
+You can run the game with random action using this code!! 
 
-Num_action = 3
-```
-3. Set the name of the game to save the variables
-```
-game_name = 'pong'
-```
 
-4. Please check that you made the folder for saved variables
+
+Please check that you made the folder for saved variables
+
 ```
 checkpoint = tf.train.get_checkpoint_state("saved_networks_DQN")
 ```
@@ -61,16 +82,105 @@ Then you are ready to implement the code! :laughing:
 
 ---
 ## Games 
+Most of the games are made with python and pygame! 
+
+The codes are easy to understand and variables are easy to understand. 
+
+So fix the code as you want!! :laughing: 
+
 To verify the codes, I used the games as follows. 
-* dot 
-* dot test 
+
+* pong (Improved!! :satisfied:) 
+* break out (New!! :smiley:) 
 * tetris
-* pong 
 * wormy
+* dot
+* dot test   
+  ​
+
+**Pong**
+<p align= "center">
+  <img src="./DQN_GAMES/pong.PNG" width="300" alt="Combined Image" />
+</p>
+
+This is `Pong game` which is one of the most famous DRL example.
+I write this code with pygame. 
+
+**Rule**
+
+- Red bar: Agent  /  Blue bar: Enemy
+- Actions: Up, Down, Stay (3 actions)
+- Enemy never lose the game! 
+- If agent hit the ball, get +1 reward / If agent lose, get -1 reward
+- If agent hit the ball 10 times then game is finished
+
+
+
+**Break out**
+<p align= "center">
+  <img src="./DQN_GAMES/breakout.PNG" width="300" alt="Combined Image" />
+</p>
+
+This is `Break out` which is one of the most famous DRL example.
+I write this code with pygame. 
+
+**Rule**
+
+- Red bar: Agent  /  Blue bar: Enemy
+
+- Actions: left slow, left fast, Stay, right slow, right fast (5 actions)
+
+- If agent hit the ball, get +0.5 reward
+
+- If ball breaks one block, get +1 reward
+
+- If ball get to the ground, get -1 reward
+
+- If agent breaks all of the blocks get +10 points!!
+
+  ​
+
+**Tetris**
+<p align= "center">
+  <img src="./DQN_GAMES/tetris.PNG" width="300" alt="Combined Image" />
+</p>
+
+Original tetris game code is from [invent with pygame](http://inventwithpython.com/pygame) 
+<br>Wrapped version of game code is from [github of asrivat1](https://github.com/asrivat1/DeepLearningVideoGames)
+
+**Rule**
+
+- Simple tetris rule!
+
+- Actions: right, left, down, down to bottom, rotate 90 degree, rotate -90 degree (6 actions)
+
+- If make one complete line then get +1 reward / Setting - reward is still in progress
+
+  ​
+
+**Wormy**
+<p align= "center">
+  <img src="./DQN_GAMES/wormy.png" width="300" alt="Combined Image" />
+</p>
+
+Original tetris game code is from [invent with pygame](http://inventwithpython.com/pygame) 
+<br> I made DQN version of game code my own
+
+**Rule**
+
+- Simple wormy rule!
+
+- Actions: right, left, forward (3 actions)
+
+- If worm eat apple(red square) then gets +1 reward. 
+
+- If worm hit the wall or eat himself gets -1 reward
+
+  ​
 
 **Dot**
 <p align= "center">
-  <img src="./Wrapped_Game/dot_game.PNG" width="500" alt="Combined Image" />
+  <img src="./DQN_GAMES/dot_game.PNG" width="300" alt="Combined Image" />
 </p>
 
 I made this game to evaluate my DQN code. 
@@ -78,38 +188,13 @@ I made this game to evaluate my DQN code.
 <br>So blue square needs to evade red square and get the green diamond. 
 <br>You can change the difficulty and maps in the code. 
 
+
 **Dot mini**
 <p align= "center">
-  <img src="./Wrapped_Game/dot_test.PNG" width="200" alt="Combined Image" />
+  <img src="./DQN_GAMES/dot_test.PNG" width="200" alt="Combined Image" />
 </p>
 
 This is simple version of Dot. 
-
-**Pong**
-<p align= "center">
-  <img src="./Wrapped_Game/pong.PNG" width="500" alt="Combined Image" />
-</p>
-
-This is `Pong game` which is one of the most famous DRL example.
-<br> Wrapped version of game code is from [github of asrivat1](https://github.com/asrivat1/DeepLearningVideoGames)
-
-**Tetris**
-<p align= "center">
-  <img src="./Wrapped_Game/tetris.PNG" width="500" alt="Combined Image" />
-</p>
-
-Original tetris game code is from [invent with pygame](http://inventwithpython.com/pygame) 
-<br>Wrapped version of game code is from [github of asrivat1](https://github.com/asrivat1/DeepLearningVideoGames)
-
-**Wormy**
-<p align= "center">
-  <img src="./Wrapped_Game/wormy.png" width="500" alt="Combined Image" />
-</p>
-
-Original tetris game code is from [invent with pygame](http://inventwithpython.com/pygame) 
-<br> I made wrapped version of game code my own
-
-
 
 ---
 ## Deep Q Network (DQN)
@@ -120,7 +205,7 @@ I studied `Deep Q Network` with the famous paper [Human-level control through de
 <br> The result graph is as follows. 
 
 <p align= "center">
-  <img src="./Plot/2017-05-01_9_DQN_pong.png" width="500" alt="Combined Image" />
+  <img src="./Plot/2017-09-21_15_DQN_pong5.64754098361.png" width="500" alt="Combined Image" />
 </p>
 
 Each point is the average score of 100 games. 
@@ -131,8 +216,7 @@ Each point is the average score of 100 games.
 ## Double Deep Q Network (DDQN)
 
 I studied `Double Deep Q Network` with the paper [Deep Reinforcement Learning with Double Q-learning](https://arxiv.org/abs/1509.06461)
-> The main idea of this algorithm is from `Double Q Learning` (van Hasselt,
-> 2010).
+> The main idea of this algorithm is from `Double Q Learning` (van Hasselt, 2010).
 > This algorithm uses two sets of weights, θ and θ'.
 > <br> For each update, one set of weights (θ) is used to determine the greedy policy and the other (θ') is to determine its value.
 > <br> The paper said, we can decouple the `selection` from the `evaluation` with this method.
@@ -147,12 +231,4 @@ I studied `Double Deep Q Network` with the paper [Deep Reinforcement Learning wi
 </p>
 
 <br> I verified the code with the game `pong`. 
-<br> The result graph is as follows. 
-
-<p align= "center">
-  <img src="./Plot/2017-05-01_DDQN_pong.png" width="500" alt="Combined Image" />
-</p>
-
-This result shows better performance than DQN algorithm.
-
-
+<br> The game and DRL code were changed, so I will update the graph ASAP!  
