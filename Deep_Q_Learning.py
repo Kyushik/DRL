@@ -191,7 +191,7 @@ train_step = tf.train.AdamOptimizer(learning_rate = Learning_rate, epsilon = 1e-
 
 # Initialize variables
 config = tf.ConfigProto()
-config.gpu_options.per_process_gpu_memory_fraction = 0.4
+config.gpu_options.per_process_gpu_memory_fraction = GPU_fraction
 
 sess = tf.InteractiveSession(config=config)
 init = tf.global_variables_initializer()
@@ -212,7 +212,6 @@ if check_save == 1:
 # Initial parameters
 Replay_memory = []
 step = 1
-progress = 'Observing'
 score = 0 
 episode = 0
 

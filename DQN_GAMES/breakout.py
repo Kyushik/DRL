@@ -153,19 +153,21 @@ class GameState:
 			self.ball_speed_y = - self.ball_speed_y
 		
 		# Ball is bounced when the ball hit the bar
-		if self.ball_position_y >= WINDOW_HEIGHT - 2:
+		if self.ball_position_y >= WINDOW_HEIGHT - 4:
 			# Hit the ball!
 			if self.ball_position_x <= self.bar_position + bar_width and self.ball_position_x >= self.bar_position:
 				ball_hit_point = self.ball_position_x - self.bar_position
 				ball_hit_point_ratio = ball_hit_point / bar_width
 				self.ball_speed_x = (ball_hit_point_ratio * ball_bounce_speed_range) - (ball_bounce_speed_range/2)
 				self.ball_speed_y = - self.ball_speed_y
+				self.ball_position_y = WINDOW_HEIGHT - 4
 				reward = 0.5
-			# Lose :( 
-			else:
-				self.init = True
-				reward = -1
-				terminal = True
+		
+		# Lose :( 
+		if self.ball_position_y >= WINDOW_HEIGHT:
+			self.init = True
+			reward = -1
+			terminal = True
 
 		# When the ball hit the block
 		for i in range(num_block_row):
@@ -246,7 +248,7 @@ class GameState:
 		# Win the game!! :) 
 		if count_visible == 0:
 			self.init = True
-			reward = 1	
+			reward = 10	
 			terminal = True 
 
 		# Display informations
