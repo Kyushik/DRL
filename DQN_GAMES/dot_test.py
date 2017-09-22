@@ -74,12 +74,10 @@ class GameState:
 		self.checkForQuit()
 		self.drawBasicBoard()		
 		# initialize the position of myself, enemy, food
-		self.My_position = self.Coordinate_info[0][0]
-		self.Enemy_list = self.Coordinate_info[1]
-		self.Food_list = self.Coordinate_info[2]
+
 		self.count_init = 0
 		self.reward_food = 1
-		self.reward_enemy = -100
+		self.reward_enemy = -1
 
 		self.count_food = 0
 
@@ -94,10 +92,6 @@ class GameState:
 		self.checkForQuit()
 		
 		self.drawBasicBoard()		
-		# initialize the position of myself, enemy, food
-		self.My_position = self.Coordinate_info[0][0]
-		self.Enemy_list = self.Coordinate_info[1]
-		self.Food_list = self.Coordinate_info[2]
 		self.count_init = 0
 		self.count_food = 0
 		
@@ -112,7 +106,7 @@ class GameState:
 		scoreRect = scoreSurf.get_rect()
 		scoreRect.topleft = (WINDOW_WIDTH - 200, 10)
 		
-		self.drawBasicBoard()
+		# self.drawBasicBoard()
 
 		# self.Game_board_state, self.Coordinate_info = self.drawGameBoard(difficulty)
 		self.checkForQuit()
@@ -121,16 +115,15 @@ class GameState:
 		# if self.count_init == 0:
 		# 	self.Game_board_state, self.Coordinate_info = self.drawGameBoard(difficulty)
 
-		self.My_position = self.Coordinate_info[0][0]
-		self.Enemy_list = self.Coordinate_info[1]
-		self.Food_list = self.Coordinate_info[2]
+		if self.count_init == 0:
+			self.My_position = self.Coordinate_info[0][0]
+			self.Enemy_list = self.Coordinate_info[1]
+			self.Food_list = self.Coordinate_info[2]
 		
 		self.Last_enemy_move = []
 		for i in range(len(self.Enemy_list)):
 			self.Last_enemy_move.append('Stop')
-			
-	####################################### Auto mode #################################
-		
+					
 		# self.DrawGameBoardState(self.Game_board_state)
 		self.DrawGameBoardState()
 		self.Drawlines()
@@ -231,6 +224,9 @@ class GameState:
 
 		pygame.display.update()
 		self.checkForQuit()
+
+		self.count_init = 1
+
 		image_data = pygame.surfarray.array3d(pygame.display.get_surface())
 		return image_data, reward, terminal
 

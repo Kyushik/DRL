@@ -160,6 +160,9 @@ PIECES = {'S': S_SHAPE_TEMPLATE,
 def ReturnName():
     return 'tetris'
 
+def Return_Num_Action():
+    return 6
+
 class GameState:
     def __init__(self):
         global FPSCLOCK, DISPLAYSURF, BASICFONT, BIGFONT
@@ -273,15 +276,15 @@ class GameState:
             if not self.isValidPosition():
                 self.fallingPiece['rotation'] = (self.fallingPiece['rotation'] + 1) % len(PIECES[self.fallingPiece['shape']])
 
-        # # move the current piece all the way down
-        # elif (input[5] == 1):
-        #     self.movingDown = False
-        #     self.movingLeft = False
-        #     self.movingRight = False
-        #     for i in range(1, BOARDHEIGHT):
-        #         if not self.isValidPosition(adjY=i):
-        #             break
-        #     self.fallingPiece['y'] += i - 1
+        # move the current piece all the way down
+        elif (input[5] == 1):
+            self.movingDown = False
+            self.movingLeft = False
+            self.movingRight = False
+            for i in range(1, BOARDHEIGHT):
+                if not self.isValidPosition(adjY=i):
+                    break
+            self.fallingPiece['y'] += i - 1
 
         # handle moving the piece because of user input
         # if (self.movingLeft or self.movingRight):

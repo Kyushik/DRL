@@ -34,6 +34,9 @@ Num_colorChannel = Deep_Parameters.Num_colorChannel
 Num_plot_episode = Deep_Parameters.Num_plot_episode
 Num_step_save = Deep_Parameters.Num_step_save
 
+GPU_fraction = Deep_Parameters.GPU_fraction
+Is_train = Deep_Parameters.Is_train
+
 # Parametwrs for Network
 img_size = Deep_Parameters.img_size
 
@@ -45,6 +48,11 @@ second_dense = Deep_Parameters.second_dense
 third_dense  = Deep_Parameters.third_dense
 
 game_name = game.ReturnName()
+
+# If is train is false then immediately start testing 
+if Is_train == False:
+	Num_start_training = 0
+	Num_training = 0
 
 # Initialize weights and bias 
 def weight_variable(shape):
@@ -179,13 +187,11 @@ y_prediction = tf.placeholder(tf.float32, shape = [None])
 
 y_target = tf.reduce_sum(tf.multiply(output, action_target), reduction_indices = 1)
 Loss = tf.reduce_mean(tf.square(y_prediction - y_target))
-# train_step = tf.train.RMSPropOptimizer(Learning_rate).minimize(Loss)
 train_step = tf.train.AdamOptimizer(learning_rate = Learning_rate, epsilon = 1e-02).minimize(Loss)
-# train_step = tf.train.RMSPropOptimizer(learning_rate = Learning_rate, momentum = 0.95).minimize(Loss)
 
 # Initialize variables
 config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
+config.gpu_options.per_process_gpu_memory_fraction = 0.4
 
 sess = tf.InteractiveSession(config=config)
 init = tf.global_variables_initializer()
@@ -209,8 +215,10 @@ step = 1
 progress = 'Observing'
 score = 0 
 episode = 0
-datetime_now = str(datetime.date.today()) 
-hour = str(datetime.datetime.now().hour)
+
+# date - hour - minute of training time
+date_time = str(datetime.date.today()) + '_' + str(datetime.datetime.now().hour) + '_' + str(datetime.datetime.now().minute)
+
 
 game_state = game.GameState()
 action = np.zeros([Num_action])
@@ -267,7 +275,6 @@ while True:
 			action = np.zeros([Num_action])
 			action[random.randint(0, Num_action - 1)] = 1
 		else:
-			# observation_feed = np.reshape(observation_in, (1, img_size, img_size, Num_colorChannel * Num_stackFrame))
 			observation_feed = normalize_input(observation_in)
 			Q_value = output.eval(feed_dict={x_image: [observation_feed]})
 			action = np.zeros([Num_action])
@@ -291,7 +298,7 @@ while True:
 		# Decrease the epsilon value 
 		if Epsilon > Final_epsilon:
 			Epsilon -= 1.0/Num_training
-		
+
 		# Select minibatch
 		minibatch =  random.sample(Replay_memory, Num_batch)
 
@@ -328,7 +335,6 @@ while True:
 		Epsilon = 0
 
 		# Choose the action of testing state
-		# observation_feed = np.reshape(observation_in, (1, img_size, img_size, Num_colorChannel * Num_stackFrame))
 		observation_feed = normalize_input(observation_in)
 
 		Q_value = output.eval(feed_dict={x_image: [observation_feed]})
@@ -354,7 +360,7 @@ while True:
 	else:
 		mean_score_test = np.average(test_score) 
 		print(game_name + str(mean_score_test))
-		plt.savefig('./Plot/' + datetime_now + '_' + hour + '_' + algorithm + '_' + game_name + str(mean_score_test) + '.png')		
+		plt.savefig('./Plot/' + date_time + '_' + algorithm + '_' + game_name + str(mean_score_test) + '.png')		
 
 		# Finish the Code 
 		print('It takes ' + str(time.time() - start_time) + ' seconds to finish this algorithm!')
