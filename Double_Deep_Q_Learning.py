@@ -5,17 +5,18 @@ import tensorflow as tf
 import cv2
 import random 
 import numpy as np 
-import copy 
 import matplotlib.pyplot as plt 
 import datetime 
-# from pushbullet.pushbullet import PushBullet
 import time 
 
 # Parameter Setting
 import Deep_Parameters
 game = Deep_Parameters.game
 
+algorithm = 'DDQN' 
+
 Num_action = game.Return_Num_Action()
+game_name = game.ReturnName()
 
 Gamma = Deep_Parameters.Gamma
 Learning_rate = Deep_Parameters.Learning_rate
@@ -35,6 +36,9 @@ Num_colorChannel = Deep_Parameters.Num_colorChannel
 Num_plot_episode = Deep_Parameters.Num_plot_episode
 Num_step_save = Deep_Parameters.Num_step_save
 
+GPU_fraction = Deep_Parameters.GPU_fraction
+Is_train = Deep_Parameters.Is_train
+
 # Parametwrs for Network
 img_size = Deep_Parameters.img_size
 
@@ -45,12 +49,10 @@ first_dense  = Deep_Parameters.first_dense
 second_dense = Deep_Parameters.second_dense
 third_dense  = Deep_Parameters.third_dense
 
-game_name = game.ReturnName()
-
-# apiKey = "o.EaKxqzWHIba2UEX7oQEmMetS3MAN4ctW"
-# p = PushBullet(apiKey)
-# # Get a list of devices
-# devices = p.getDevices()
+# If is train is false then immediately start testing 
+if Is_train == False:
+	Num_start_training = 0
+	Num_training = 0
 
 # Initialize weights and bias 
 def weight_variable(shape):
@@ -66,14 +68,6 @@ def xavier_initializer(shape):
 		dim_sum += 1
 	bound = np.sqrt(2.0 / dim_sum)
 	return tf.random_uniform(shape, minval=-bound, maxval=bound)
-
-# def weight_variable(shape):
-#     initial = tf.truncated_normal(shape, stddev = 0.01)
-#     return tf.Variable(initial)
-
-# def bias_variable(shape):
-#     initial = tf.constant(0.01, shape = shape)
-#     return tf.Variable(initial)
 
 # Convolution and pooling
 def conv2d(x,w, stride):
@@ -109,14 +103,18 @@ def assign_network_to_target():
 	sess.run(update_bfc2)
 	sess.run(update_bfc3)
 
-def resize_and_norm(observation):
+def resize_input(observation):
 	observation_out = cv2.resize(observation, (img_size, img_size))
 	if Num_colorChannel == 1:
 		observation_out = cv2.cvtColor(observation_out, cv2.COLOR_BGR2GRAY)
-		observation_out = np.reshape(observation_out, (img_size, img_size, 1))
-
-	observation_out = (observation_out - (255.0 / 2)) / (255.0 / 2)
+		observation_out = np.reshape(observation_out, (img_size, img_size))
+	
+	observation_out = np.uint8(observation_out)
 	return observation_out 
+
+def normalize_input(observation):
+	observation_out = (observation - (255.0/2)) / (255.0 / 2)
+	return observation_out
 
 # Input 
 x_image = tf.placeholder(tf.float32, shape = [None, img_size, img_size, Num_colorChannel * Num_stackFrame])
@@ -189,13 +187,11 @@ y_prediction = tf.placeholder(tf.float32, shape = [None])
 
 y_target = tf.reduce_sum(tf.multiply(output, action_target), reduction_indices = 1)
 Loss = tf.reduce_mean(tf.square(y_prediction - y_target))
-# train_step = tf.train.RMSPropOptimizer(Learning_rate).minimize(Loss)
 train_step = tf.train.AdamOptimizer(learning_rate = Learning_rate, epsilon = 1e-02).minimize(Loss)
-# train_step = tf.train.RMSPropOptimizer(learning_rate = Learning_rate, momentum = 0.95).minimize(Loss)
 
 # Initialize variables
 config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
+config.gpu_options.per_process_gpu_memory_fraction = GPU_fraction
 
 sess = tf.InteractiveSession(config=config)
 init = tf.global_variables_initializer()
@@ -216,52 +212,28 @@ if check_save == 1:
 # Initial parameters
 Replay_memory = []
 step = 1
-state = 'Observing'
 score = 0 
 episode = 0
-datetime_now = str(datetime.date.today()) 
-hour = str(datetime.datetime.now().hour)
 
+# date - hour - minute of training time
+date_time = str(datetime.date.today()) + '_' + str(datetime.datetime.now().hour) + '_' + str(datetime.datetime.now().minute)
+
+# Get initial game information
 game_state = game.GameState()
 action = np.zeros([Num_action])
-observation, reward, terminal = game_state.frame_step(action)
-observation = resize_and_norm(observation)
-observation_copy = copy.deepcopy(observation)
+observation, _, _ = game_state.frame_step(action)
+observation = resize_input(observation)
 
+# Initialize input data 
 observation_in = np.zeros([img_size, img_size, Num_colorChannel * Num_stackFrame])
 observation_next_in = np.zeros([img_size, img_size, Num_colorChannel * Num_stackFrame])
 
 observation_set = []
+
+start_time = time.time() 
+
 for i in range(Num_skipFrame * Num_stackFrame):
-	observation_set.append(observation_copy)
-
-# Making replay memory
-for i in range(Num_start_training):
-	action = np.zeros([Num_action])
-	action[random.randint(0, Num_action - 1)] = 1.0
-
-	observation_next, reward, terminal = game_state.frame_step(action)
-	observation_next = resize_and_norm(observation_next)
-
-	observation_set.append(observation_next)
-
-	observation_next_in = np.zeros((img_size, img_size, 1))
-
-	# Stack the frame according to the number of skipping frame 	
-	for stack_frame in range(Num_stackFrame):
-		observation_next_in = np.insert(observation_next_in, [1], observation_set[-1 - (Num_skipFrame * stack_frame)], axis = 2)
-
-	del observation_set[0]
-
-	observation_next_in = np.delete(observation_next_in, [0], axis = 2)
-
-	Replay_memory.append([observation_in, action, reward, observation_next_in, terminal])
-	
-	observation_in = observation_next_in
-
-	if step % 100 == 0:
-		print('step: ' + str(step) + ' / '  + 'state: ' + state)
-	step += 1
+	observation_set.append(observation)
 
 # Figure and figure data setting
 plt.figure(1)
@@ -270,60 +242,72 @@ plot_y = []
 
 test_score = []
 
-# Training & Testing
+# Training & Testing 
 while True:
-	if step <= Num_start_training + Num_training:
-		# Training 
-		state = 'Training'
+	if step <= Num_start_training:
+		# Observation
+		progress = 'Observing'
 
-		if len(Replay_memory) > Num_replay_memory:
-			del Replay_memory[0]
+		action = np.zeros([Num_action])
+		action[random.randint(0, Num_action - 1)] = 1.0
+
+		observation_next, reward, terminal = game_state.frame_step(action)
+		observation_next = resize_input(observation_next)
+		
+		observation_set.append(observation_next)
+
+		observation_next_in = np.zeros((img_size, img_size, Num_colorChannel * Num_stackFrame))
+
+		# Stack the frame according to the number of skipping frame 	
+		for stack_frame in range(Num_stackFrame):
+			observation_next_in[:,:,stack_frame] = observation_set[-1 - (Num_skipFrame * stack_frame)]
+
+		del observation_set[0]
+
+		observation_next_in = np.uint8(observation_next_in)
+
+	elif step <= Num_start_training + Num_training:
+		# Training 
+		progress = 'Training'
 
 		# if random value(0 - 1) is smaller than Epsilon, action is random. Otherwise, action is the one which has the largest Q value 
 		if random.random() < Epsilon:
 			action = np.zeros([Num_action])
 			action[random.randint(0, Num_action - 1)] = 1
 		else:
-			observation_feed = np.reshape(observation_in, (1, img_size, img_size, Num_colorChannel * Num_stackFrame))
-			Q_value = output.eval(feed_dict={x_image: observation_feed})[0]
+			observation_feed = normalize_input(observation_in)
+			Q_value = output.eval(feed_dict={x_image: [observation_feed]})
 			action = np.zeros([Num_action])
 			action[np.argmax(Q_value)] = 1
 
 		observation_next, reward, terminal = game_state.frame_step(action)
-		observation_next = resize_and_norm(observation_next)
+		observation_next = resize_input(observation_next)
 
 		observation_set.append(observation_next)
 
-		observation_next_in = np.zeros((img_size, img_size, 1))
+		observation_next_in = np.zeros((img_size, img_size, Num_colorChannel * Num_stackFrame))
 
-		# Stack the frame according to the number of skipping frame 
+		# Stack the frame according to the number of skipping frame 	
 		for stack_frame in range(Num_stackFrame):
-			observation_next_in = np.insert(observation_next_in, [1], observation_set[-1 - (Num_skipFrame * stack_frame)], axis = 2)
+			observation_next_in[:,:,stack_frame] = observation_set[-1 - (Num_skipFrame * stack_frame)]
 
 		del observation_set[0]
 
-		observation_next_in = np.delete(observation_next_in, [0], axis = 2)
+		observation_next_in = np.uint8(observation_next_in)
 
-		# Save experience to the Replay memory 
-		Replay_memory.append([observation_in, action, reward, observation_next_in, terminal])
-
-		# Update parameters at every iteration	
-		observation_in = observation_next_in
-
+		# Decrease the epsilon value 
 		if Epsilon > Final_epsilon:
-    			Epsilon -= 1.0/Num_training
+			Epsilon -= 1.0/Num_training
 
 		# Select minibatch
 		minibatch =  random.sample(Replay_memory, Num_batch)
 
 		# Save the each batch data 
-		observation_batch      = [batch[0] for batch in minibatch]
+		observation_batch      = [normalize_input(batch[0]) for batch in minibatch]
 		action_batch           = [batch[1] for batch in minibatch]
 		reward_batch           = [batch[2] for batch in minibatch]
-		observation_next_batch = [batch[3] for batch in minibatch]
+		observation_next_batch = [normalize_input(batch[3]) for batch in minibatch]
 		terminal_batch 	       = [batch[4] for batch in minibatch]
-
-		y_batch = [] 
 
 		# Update target network according to the Num_update value 
 		if step % Num_update == 0:
@@ -331,10 +315,14 @@ while True:
 
 		# Get y_prediction 
 		####################################### Double Q Learning part #######################################
+		y_batch = [] 
+		# Get Q value for selecting actions
 		Q_list = output.eval(feed_dict = {x_image: observation_next_batch})
 		a_max = []
 		for i in range(Q_list.shape[0]):
 			a_max.append(np.argmax(Q_list[i]))
+		
+		# Get Q vlaue for evaluation
 		Q_batch = output_target.eval(feed_dict = {x_image: observation_next_batch})
 		
 		for i in range(len(minibatch)):
@@ -344,7 +332,7 @@ while True:
 				y_batch.append(reward_batch[i] + Gamma * Q_batch[i, a_max[i]])
 
 		######################################################################################################
-		
+
 		train_step.run(feed_dict = {action_target: action_batch, y_prediction: y_batch, x_image: observation_batch})
 
 	    # save progress every 10000 iterations
@@ -352,62 +340,86 @@ while True:
 			saver.save(sess, 'saved_networks_DDQN/' + game_name)
 			print('Model is saved!!!')
 
-	if step > Num_start_training + Num_training:
+	elif step < Num_start_training + Num_training + Num_test:
 		# Testing
-		state = 'Testing'
+		progress = 'Testing'
 		Epsilon = 0
 
 		# Choose the action of testing state
-		observation_feed = np.reshape(observation_in, (1, img_size, img_size, Num_colorChannel * Num_stackFrame))
-		Q_value = output.eval(feed_dict={x_image: observation_feed})[0]
+		observation_feed = normalize_input(observation_in)
+
+		Q_value = output.eval(feed_dict={x_image: [observation_feed]})
 		action = np.zeros([Num_action])
 		action[np.argmax(Q_value)] = 1
 			
 		# Get game state
 		observation_next, reward, terminal = game_state.frame_step(action)
-		observation_next = resize_and_norm(observation_next)
+		observation_next = resize_input(observation_next)
 
 		observation_set.append(observation_next)
 
-		observation_next_in = np.zeros((img_size, img_size, 1))
+		observation_next_in = np.zeros((img_size, img_size, Num_colorChannel * Num_stackFrame))
 
-		# Stack the frame according to the number of skipping frame 
+		# Stack the frame according to the number of skipping frame 	
 		for stack_frame in range(Num_stackFrame):
-			observation_next_in = np.insert(observation_next_in, [1], observation_set[-1 - (Num_skipFrame * stack_frame)], axis = 2)
+			observation_next_in[:,:,stack_frame] = observation_set[-1 - (Num_skipFrame * stack_frame)]
 			
 		del observation_set[0]
 		
-		observation_next_in = np.delete(observation_next_in, [0], axis = 2)
+		observation_next_in = np.uint8(observation_next_in)
 
-		observation_in = observation_next_in 
-
-	if step == Num_start_training + Num_training + Num_test:
+	else:
 		mean_score_test = np.average(test_score) 
 		print(game_name + str(mean_score_test))
-		plt.savefig('./Plot/' + datetime_now + '_' + hour + '_DDQN_' + game_name + str(mean_score_test) + '.png')		
+		plt.savefig('./Plot/' + date_time + '_' + algorithm + '_' + game_name + str(mean_score_test) + '.png')		
 
-		# Send a note to pushbullet 
-		# p.pushNote(devices[0]["iden"], 'DDQN', 'DDQN is done')
-		
 		# Finish the Code 
-		break		
-	
+		print('It takes ' + str(time.time() - start_time) + ' seconds to finish this algorithm!')
+		break	
+
+	# If length of replay memeory is more than the setting value then remove the first one
+	if len(Replay_memory) > Num_replay_memory:
+		del Replay_memory[0]
+
+	# Save experience to the Replay memory 
+	if progress != 'Testing':
+		Replay_memory.append([observation_in, action, reward, observation_next_in, terminal])
+
 	step += 1
 	score += reward 
 
-	if terminal == True:
-		print('step: ' + str(step) + ' / '  + 'state: ' + state  + ' / '  + 'epsilon: ' + str(Epsilon) + ' / '  + 'score: ' + str(score)) 
+	observation_in = observation_next_in 
 
+	# If terminal is True
+	if terminal == True:
+		# Print informations
+		print('step: ' + str(step) + ' / '  + 'episode: ' + str(episode) + ' / ' + 'progress: ' + progress  + ' / '  + 'epsilon: ' + str(Epsilon) + ' / '  + 'score: ' + str(score)) 
+
+		# Add data for plotting
 		plot_x.append(episode)
 		plot_y.append(score)
 
-		if state == 'Testing':
+		# If progress is testing then add score for calculating test score
+		if progress == 'Testing':
 			test_score.append(score)
 
+		# Initialize score and add 1 to episode number 
 		score = 0
-		episode += 1
 
-	if len(plot_x) % Num_plot_episode == 0 and len(plot_x) != 0:
+		if progress != 'Observing':
+			episode += 1
+
+		# Initialize game state
+		action = np.zeros([Num_action])
+		observation, _, _ = game_state.frame_step(action)
+		observation = resize_input(observation)
+
+		observation_set = []
+
+		for i in range(Num_skipFrame * Num_stackFrame):
+				observation_set.append(observation)
+
+	if len(plot_x) % Num_plot_episode == 0 and len(plot_x) != 0 and progress != 'Observing':
 		plt.xlabel('Episode')
 		plt.ylabel('Score')
 		plt.title('Double Deep Q Learning')

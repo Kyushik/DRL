@@ -4,16 +4,11 @@ import sys
 sys.path.append("DQN_GAMES/")
 
 # Action Num
-# pong = 3
-# dot, dot_test = 4
-# tetris = 5
 import pong
-import pong_test 
 import dot  
 import dot_test  
 import tetris  
 import wormy
-import easy_grid 
 import breakout as game
 
 Gamma = 0.99

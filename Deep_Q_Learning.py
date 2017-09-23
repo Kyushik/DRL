@@ -14,7 +14,9 @@ import Deep_Parameters
 game = Deep_Parameters.game
 
 algorithm = 'DQN' 
+
 Num_action = game.Return_Num_Action()
+game_name = game.ReturnName()
 
 Gamma = Deep_Parameters.Gamma
 Learning_rate = Deep_Parameters.Learning_rate
@@ -46,8 +48,6 @@ third_conv   = Deep_Parameters.third_conv
 first_dense  = Deep_Parameters.first_dense
 second_dense = Deep_Parameters.second_dense
 third_dense  = Deep_Parameters.third_dense
-
-game_name = game.ReturnName()
 
 # If is train is false then immediately start testing 
 if Is_train == False:
