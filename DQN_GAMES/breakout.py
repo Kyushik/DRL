@@ -83,7 +83,7 @@ class GameState:
 		self.ball_position_x_old = ball_init_position_x
 		self.ball_position_y_old = ball_init_position_y
 		
-		self.ball_speed_x = random.randint(-3, 3)
+		self.ball_speed_x = random.uniform(-3.0, 3.0)
 		self.ball_speed_y = 5
 
 		self.num_blocks = num_block_row * num_block_col
@@ -112,7 +112,7 @@ class GameState:
 			self.ball_position_x = ball_init_position_x
 			self.ball_position_y = ball_init_position_y
 
-			self.ball_speed_x = random.randint(-3, 3)
+			self.ball_speed_x = random.uniform(-3.0, 3.0)
 			self.ball_speed_y = 5
 
 			self.block_info = copy.deepcopy(self.init_block_info)
