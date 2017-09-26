@@ -83,6 +83,7 @@ class GameState:
 		self.ball_position_x_old = ball_init_position_x
 		self.ball_position_y_old = ball_init_position_y
 		
+		# self.ball_speed_x = random.randint(-3, 3)
 		self.ball_speed_x = random.uniform(-3.0, 3.0)
 		self.ball_speed_y = 5
 
@@ -112,6 +113,7 @@ class GameState:
 			self.ball_position_x = ball_init_position_x
 			self.ball_position_y = ball_init_position_y
 
+			# self.ball_speed_x = random.randint(-3, 3)
 			self.ball_speed_x = random.uniform(-3.0, 3.0)
 			self.ball_speed_y = 5
 
@@ -146,21 +148,27 @@ class GameState:
 		self.ball_position_y += self.ball_speed_y
 
 		# Ball is bounced when the ball hit the wall
-		if self.ball_position_x <= 0 or self.ball_position_x >= WINDOW_WIDTH:
+		if self.ball_position_x < ball_radius: 
 			self.ball_speed_x = - self.ball_speed_x
+			self.ball_position_x = ball_radius
+
+		if self.ball_position_x >= WINDOW_WIDTH - ball_radius:
+			self.ball_speed_x = - self.ball_speed_x
+			self.ball_position_x = WINDOW_WIDTH - ball_radius
 		
-		if self.ball_position_y <= INFO_GAP:
+		if self.ball_position_y < INFO_GAP + ball_radius:
 			self.ball_speed_y = - self.ball_speed_y
+			self.ball_position_y = INFO_GAP + ball_radius
 		
 		# Ball is bounced when the ball hit the bar
-		if self.ball_position_y >= WINDOW_HEIGHT - 4:
+		if self.ball_position_y >= WINDOW_HEIGHT - bar_height - ball_radius:
 			# Hit the ball!
 			if self.ball_position_x <= self.bar_position + bar_width and self.ball_position_x >= self.bar_position:
 				ball_hit_point = self.ball_position_x - self.bar_position
 				ball_hit_point_ratio = ball_hit_point / bar_width
 				self.ball_speed_x = (ball_hit_point_ratio * ball_bounce_speed_range) - (ball_bounce_speed_range/2)
 				self.ball_speed_y = - self.ball_speed_y
-				self.ball_position_y = WINDOW_HEIGHT - 4
+				self.ball_position_y = WINDOW_HEIGHT - bar_height - ball_radius
 				reward = 0.5
 		
 		# Lose :( 
@@ -170,6 +178,7 @@ class GameState:
 			terminal = True
 
 		# When the ball hit the block
+		check_ball_hit_block = 0
 		for i in range(num_block_row):
 			for j in range(num_block_col):
 				block_left  = self.block_info[i][j][0][0]
@@ -179,7 +188,7 @@ class GameState:
 				visible     = self.block_info[i][j][1]
 
 				# The ball hit some block!! 
-				if (block_left <= self.ball_position_x <= block_right) and (block_up <= self.ball_position_y <= block_down) and visible == 'visible':
+				if (block_left <= self.ball_position_x + ball_radius) and (self.ball_position_x - ball_radius <= block_right) and (block_up <= self.ball_position_y + ball_radius) and (self.ball_position_y - ball_radius <= block_down) and visible == 'visible':
 					# Which part of the block was hit?? 
 					# Upper left, Upper right, Lower right, Lower left
 					block_points = [[block_left, block_up], [block_right, block_up], [block_right, block_down], [block_left, block_down]]
@@ -232,7 +241,15 @@ class GameState:
 					
 					# make hit block invisible
 					self.block_info[i][j][1] = 'invisible'
+					check_ball_hit_block = 1
 					reward = 1
+
+				# If one block is hitted, break the for loop (Preventing to break multiple blocks at once) 
+				if check_ball_hit_block == 1:
+					break 
+			# If one block is hitted, break the for loop (Preventing to break multiple blocks at once)
+			if check_ball_hit_block == 1:
+				break				
 
 		# Fill background color
 		DISPLAYSURF.fill(BLACK)

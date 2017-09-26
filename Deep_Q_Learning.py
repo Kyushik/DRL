@@ -407,7 +407,7 @@ while True:
 		for i in range(Num_skipFrame * Num_stackFrame):
 				observation_set.append(observation)
 
-	if len(plot_x) % Num_plot_episode == 0 and len(plot_x) != 0 and progress != 'Observing':
+	if episode % Num_plot_episode == 0 and episode != 0:
 		plt.xlabel('Episode')
 		plt.ylabel('Score')
 		plt.title('Deep Q Learning')
