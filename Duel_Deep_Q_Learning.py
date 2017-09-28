@@ -46,8 +46,6 @@ first_conv   = Deep_Parameters.first_conv
 second_conv  = Deep_Parameters.second_conv
 third_conv   = Deep_Parameters.third_conv
 first_dense  = Deep_Parameters.first_dense
-# second_dense = Deep_Parameters.second_dense
-# third_dense  = Deep_Parameters.third_dense
 second_dense_state  = [first_dense[1], 1]
 second_dense_action = [first_dense[1], Num_action]
 
@@ -89,14 +87,10 @@ def assign_network_to_target():
 	update_wfc1_2 = tf.assign(w_fc1_2_target, w_fc1_2)
 	update_wfc2_1 = tf.assign(w_fc2_1_target, w_fc2_1)
 	update_wfc2_2 = tf.assign(w_fc2_2_target, w_fc2_2)
-	# update_wfc3_1   = tf.assign(w_fc3_1_target, w_fc3_1)
-	# update_wfc3_2   = tf.assign(w_fc3_2_target, w_fc3_2)
 	update_bfc1_1 = tf.assign(b_fc1_1_target, b_fc1_1)
 	update_bfc1_2 = tf.assign(b_fc1_2_target, b_fc1_2)
 	update_bfc2_1 = tf.assign(b_fc2_1_target, b_fc2_1)
 	update_bfc2_2 = tf.assign(b_fc2_2_target, b_fc2_2)
-	# update_bfc3_1 = tf.assign(b_fc3_1_target, b_fc3_1)
-	# update_bfc3_2 = tf.assign(b_fc3_2_target, b_fc3_2)
 
 	sess.run(update_wconv1)
 	sess.run(update_wconv2)
@@ -108,14 +102,11 @@ def assign_network_to_target():
 	sess.run(update_wfc1_2)
 	sess.run(update_wfc2_1)
 	sess.run(update_wfc2_2)
-	# sess.run(update_wfc3_1)
-	# sess.run(update_wfc3_2)
 	sess.run(update_bfc1_1)
 	sess.run(update_bfc1_2)
 	sess.run(update_bfc2_1)
 	sess.run(update_bfc2_2)
-	# sess.run(update_bfc3_1)
-	# sess.run(update_bfc3_2)
+
 
 def resize_input(observation):
 	observation_out = cv2.resize(observation, (img_size, img_size))
@@ -126,12 +117,9 @@ def resize_input(observation):
 	observation_out = np.uint8(observation_out)
 	return observation_out 
 
-def normalize_input(observation):
-	observation_out = (observation - (255.0/2)) / (255.0 / 2)
-	return observation_out
-
 # Input 
 x_image = tf.placeholder(tf.float32, shape = [None, img_size, img_size, Num_colorChannel * Num_stackFrame])
+x_normalize = (x_image - (255.0/2)) / (255.0/2)
 
 # Convolution variables 
 w_conv1 = weight_variable(first_conv)
@@ -156,14 +144,8 @@ b_fc2_1 = bias_variable([second_dense_state[1]])
 w_fc2_2 = weight_variable(second_dense_action)
 b_fc2_2 = bias_variable([second_dense_action[1]])
 
-# w_fc3_1 = weight_variable(third_dense_state)
-# b_fc3_1 = bias_variable([third_dense_state[1]])
-
-# w_fc3_2 = weight_variable(third_dense_action)
-# b_fc3_2 = bias_variable([third_dense_action[1]])
-
 # Network
-h_conv1 = tf.nn.relu(conv2d(x_image, w_conv1, 4) + b_conv1)
+h_conv1 = tf.nn.relu(conv2d(x_normalize, w_conv1, 4) + b_conv1)
 h_conv2 = tf.nn.relu(conv2d(h_conv1, w_conv2, 2) + b_conv2)
 h_conv3 = tf.nn.relu(conv2d(h_conv2, w_conv3, 1) + b_conv3)
 
@@ -173,12 +155,6 @@ h_fc1_action = tf.nn.relu(tf.matmul(h_pool3_flat, w_fc1_2)+b_fc1_2)
 
 h_fc2_state  = tf.matmul(h_fc1_state,  w_fc2_1)+b_fc2_1
 h_fc2_action = tf.matmul(h_fc1_action, w_fc2_2)+b_fc2_2
-
-# h_fc2_state  = tf.nn.relu(tf.matmul(h_fc1_state,  w_fc2_1)+b_fc2_1)
-# h_fc2_action = tf.nn.relu(tf.matmul(h_fc1_action, w_fc2_2)+b_fc2_2)
-
-# h_fc3_state  = tf.matmul(h_fc2_state,  w_fc3_1) + b_fc3_1
-# h_fc3_action = tf.matmul(h_fc2_action, w_fc3_2) + b_fc3_2
 
 h_fc2_advantage = tf.subtract(h_fc2_action, tf.reduce_mean(h_fc2_action))
 
@@ -214,7 +190,7 @@ b_fc2_2_target = bias_variable([second_dense_action[1]])
 # b_fc3_2_target = bias_variable([third_dense_action[1]])
 
 # Target Network 
-h_conv1_target = tf.nn.relu(conv2d(x_image, w_conv1_target, 4) + b_conv1_target)
+h_conv1_target = tf.nn.relu(conv2d(x_normalize, w_conv1_target, 4) + b_conv1_target)
 h_conv2_target = tf.nn.relu(conv2d(h_conv1_target, w_conv2_target, 2) + b_conv2_target)
 h_conv3_target = tf.nn.relu(conv2d(h_conv2_target, w_conv3_target, 1) + b_conv3_target)
 
@@ -296,6 +272,8 @@ plot_y = []
 
 test_score = []
 
+check_plot = 0 
+
 # Training & Testing 
 while True:
 	if step <= Num_start_training:
@@ -329,8 +307,7 @@ while True:
 			action = np.zeros([Num_action])
 			action[random.randint(0, Num_action - 1)] = 1
 		else:
-			observation_feed = normalize_input(observation_in)
-			Q_value = output.eval(feed_dict={x_image: [observation_feed]})
+			Q_value = output.eval(feed_dict={x_image: [observation_in]})
 			action = np.zeros([Num_action])
 			action[np.argmax(Q_value)] = 1
 
@@ -357,10 +334,10 @@ while True:
 		minibatch =  random.sample(Replay_memory, Num_batch)
 
 		# Save the each batch data 
-		observation_batch      = [normalize_input(batch[0]) for batch in minibatch]
+		observation_batch      = [batch[0] for batch in minibatch]
 		action_batch           = [batch[1] for batch in minibatch]
 		reward_batch           = [batch[2] for batch in minibatch]
-		observation_next_batch = [normalize_input(batch[3]) for batch in minibatch]
+		observation_next_batch = [batch[3] for batch in minibatch]
 		terminal_batch 	       = [batch[4] for batch in minibatch]
 
 		# Update target network according to the Num_update value 
@@ -389,9 +366,7 @@ while True:
 		Epsilon = 0
 
 		# Choose the action of testing state
-		observation_feed = normalize_input(observation_in)
-
-		Q_value = output.eval(feed_dict={x_image: [observation_feed]})
+		Q_value = output.eval(feed_dict={x_image: [observation_in]})
 		action = np.zeros([Num_action])
 		action[np.argmax(Q_value)] = 1
 			
@@ -442,6 +417,8 @@ while True:
 		plot_x.append(episode)
 		plot_y.append(score)
 
+		check_plot = 1
+
 		# If progress is testing then add score for calculating test score
 		if progress == 'Testing':
 			test_score.append(score)
@@ -462,7 +439,7 @@ while True:
 		for i in range(Num_skipFrame * Num_stackFrame):
 				observation_set.append(observation)
 
-	if episode % Num_plot_episode == 0 and episode != 0:
+	if episode % Num_plot_episode == 0 and episode != 0 and check_plot == 1:
 		plt.xlabel('Episode')
 		plt.ylabel('Score')
 		plt.title('Duel Deep Q Learning')
@@ -474,3 +451,5 @@ while True:
 
 		plot_x = []
 		plot_y = [] 
+
+		check_plot = 0
