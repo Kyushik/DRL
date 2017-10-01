@@ -23,7 +23,7 @@ Num_start_training = 50000
 Num_training = 500000
 Num_update = 5000
 Num_batch = 32
-Num_test = 100000
+Num_test = 250000
 Num_skipFrame = 4
 Num_stackFrame = 4
 Num_colorChannel = 1
@@ -31,7 +31,7 @@ Num_colorChannel = 1
 Num_plot_episode = 50
 Num_step_save = 50000
 
-GPU_fraction = 0.3
+GPU_fraction = 0.4
 Is_train = True
 
 img_size = 80
@@ -39,6 +39,6 @@ img_size = 80
 first_conv   = [8,8,Num_colorChannel * Num_stackFrame,32]
 second_conv  = [4,4,32,64]
 third_conv   = [3,3,64,64]
-first_dense  = [10*10*64, 512]
-second_dense = [512, 128]
-third_dense  = [128, Num_action]
+first_dense  = [10*10*64, 1024]
+second_dense = [1024, 256]
+third_dense  = [256, Num_action]
