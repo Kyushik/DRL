@@ -6,9 +6,9 @@ This repository is the codes for `Deep Reinforcement Learning`
 <br> I set up the DQN code as follows. 
 * [Human-level Control Through Deep Reinforcement Learning](https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf)
 * [Deep Reinforcement Learning with Double Q-Learning](https://arxiv.org/abs/1509.06461)
-* [Prioritized Experience Replay](https://arxiv.org/abs/1511.05952)
+* [Prioritized Experience Replay](https://arxiv.org/abs/1511.05952) (Testing.... ✏️)
 * [Dueling Network Architecture for Deep Reinforcement Learning](https://arxiv.org/abs/1511.06581)
-* [Deep Recurrent Q-Learning for Partially Observable MDPs](https://arxiv.org/abs/1507.06527) (In Progress.. :pencil2:)
+* [Deep Recurrent Q-Learning for Partially Observable MDPs](https://arxiv.org/abs/1507.06527) 
 
 
 
@@ -20,7 +20,7 @@ This is the [PPT file](https://www.dropbox.com/s/0o72oqe7f5kip4z/DQN.pdf?dl=0) f
 * Windows7 (64bit)
 * Python 3.5.2
 * Anaconda 4.2.0
-* Tensorflow 1.0.1
+* Tensorflow-gpu 1.3.0
 * pygame 1.9.3
 * opencv3 3.1.0
 
@@ -106,13 +106,16 @@ To verify the codes, I used the games as follows.
 This is `Pong game` which is one of the most famous DRL example.
 I write this code with pygame. 
 
-**Rule**
+
+
+Rule
 
 - Red bar: Agent  /  Blue bar: Enemy
 - Actions: Up, Down, Stay (3 actions)
 - Enemy never lose the game! 
 - If agent hit the ball, get +1 reward / If agent lose, get -1 reward
 - If agent hit the ball 10 times then game is finished
+
 
 
 
@@ -124,7 +127,9 @@ I write this code with pygame.
 This is `Break out` which is one of the most famous DRL example.
 I write this code with pygame. 
 
-**Rule**
+
+
+Rule
 
 - Red bar: Agent  /  Blue bar: Enemy
 
@@ -148,7 +153,9 @@ I write this code with pygame.
 Original tetris game code is from [invent with pygame](http://inventwithpython.com/pygame) 
 <br>Wrapped version of game code is from [github of asrivat1](https://github.com/asrivat1/DeepLearningVideoGames)
 
-**Rule**
+
+
+Rule
 
 - Simple tetris rule!
 
@@ -166,7 +173,9 @@ Original tetris game code is from [invent with pygame](http://inventwithpython.c
 Original tetris game code is from [invent with pygame](http://inventwithpython.com/pygame) 
 <br> I made DQN version of game code my own
 
-**Rule**
+
+
+Rule
 
 - Simple wormy rule!
 
@@ -189,6 +198,7 @@ I made this game to evaluate my DQN code.
 <br>You can change the difficulty and maps in the code. 
 
 
+
 **Dot mini**
 <p align= "center">
   <img src="./DQN_GAMES/dot_test.PNG" width="200" alt="Combined Image" />
@@ -201,16 +211,18 @@ This is simple version of Dot.
 
 I studied `Deep Q Network` with the famous paper [Human-level control through deep reinforcement learning](http://www.nature.com/nature/journal/v518/n7540/full/nature14236.html) from Deep mind and `deep q network code` from [github of asrivat1](https://github.com/asrivat1/DeepLearningVideoGames).
 <br> After, I studied DQN and made my own code. 
-<br> I verified the code with the game `pong`. 
+<br> I verified the code with the game `breakout`. 
 <br> The result graph is as follows. 
 
 <p align= "center">
-  <img src="./Plot/2017-09-21_15_DQN_pong5.64754098361.png" width="500" alt="Combined Image" />
+  <img src="./Plot/2017-09-27_10_15_DQN_breakout18.4324324324.png" width="500" alt="Combined Image" />
 </p>
 
-Each point is the average score of 100 games. 
+Each point is the average score of 50 games. 
 <br> The graph shows that as the training progresses, the average score increases.
 <br> I think it shows that DQN algorithm works well. :smiley: 
+
+Also, the `average testing score is 18.43`
 
 ---
 ## Double Deep Q Network (DDQN)
@@ -230,5 +242,65 @@ I studied `Double Deep Q Network` with the paper [Deep Reinforcement Learning wi
   <img src="./Image/DDQN_equation.PNG" width="500" alt="Combined Image" />
 </p>
 
-<br> I verified the code with the game `pong`. 
-<br> The game and DRL code were changed, so I will update the graph ASAP!  
+<br> I verified the code with the game `breakout`. 
+
+The graph of average score is as follows.
+
+<img src="./Plot/2017-09-26_16_47_DDQN_breakout22.4.png" width="500" alt="Combined Image" />
+
+<br> The `average testing score is 22.4`
+
+---
+
+## Prioritized Experience Replay (PER)
+
+I studied `Prioritized Experience Replay` with the paper [Prioritized Experience Replay](https://arxiv.org/abs/1511.05952)
+
+> In DQN algorithm, experience transition were uniformly sampled from a replay memory.
+>
+> However, PER replays important transitions more frequently, and therefore learn more efficiently.
+>
+> The `key idea` is the RL agent can learn more efficiently from some transitions than from others. 
+>
+> The important transitions are measured by the `magnitude of their temporal difference (TD) error`
+
+
+
+TD-error = $\delta_j =R_j  + \gamma_j Q_{target} (S_j , argmax_a Q(S_j, a)) - Q(S_{j-1}, A_{j-1})$
+
+
+
+However, greedy TD-error prioritization has several issues. 
+
+- Transitions that have a low TD-error on first visit may not be replayed for a long time 
+- It is sensitive to noise spikes, which can be exacerbated by bootstrapping 
+- Greedy prioritization focuses on a small subset of the experience: error shrinks slowly.
+
+
+
+To overcome these issues, stochastic sampling method that interpolates between `pure greedy prioritization` and `uniform random sampling`. 
+
+For guaranteeing a non-zero probability even for the lowest-priority transition, it defines the `probability of sampling transition` $$i$$ as $$P(i) = {p_i^\alpha}/{\Sigma_k p_k ^\alpha}$$
+
+- $$p_i > 0$$ is the priority of transition $$i$$. 
+- The exponential $$\alpha $$ determines how much prioritization is used, with $$\alpha =0$$ corresponding to the uniform case. 
+
+To determine $$p_i$$, there are 2 ways.
+
+1. Proportional Prioritization
+   - $$p_i = |\delta_i |+\epsilon$$
+   - $$\epsilon$$ is a small positive constant that prevents the edge-case of the transitions not being revisited once their error is zero.
+2. Rank-based Prioritization
+   - $$p_i = 1/rank(i)$$ 
+   - $$rank(i)$$ is the rank of the transition $$i$$ when the replay memory is sorted according to $$|\delta_i|$$
+
+
+
+The algorithm of the prioritized experience replay is as follows. 
+
+<img src="./Image/algorithm_PER.png" width="700" alt="Combined Image" />
+
+The algorithm is still testing, so the graph will be posted after that. 
+
+ 
+
