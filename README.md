@@ -280,14 +280,14 @@ However, greedy TD-error prioritization has several issues.
 
 To overcome these issues, stochastic sampling method that interpolates between `pure greedy prioritization` and `uniform random sampling`. 
 
-For guaranteeing a non-zero probability even for the lowest-priority transition, it defines the `probability of sampling transition` $$i$$ as
+​For guaranteeing a non-zero probability even for the lowest-priority transition, it defines the `probability of sampling transition` i as
 
 <img src="./Image/PER_equation2.png" width="150" alt="Combined Image" />
 
-- $$p_i > 0$$ is the priority of transition $$i$$. 
-- The exponential $$\alpha $$ determines how much prioritization is used, with $$\alpha =0$$ corresponding to the uniform case. 
+- p_i > 0 is the priority of transition i. 
+- The exponential alpha determines how much prioritization is used, with alpha = 0 corresponding to the uniform case. 
 
-To determine $$p_i$$, there are 2 ways.
+To determine p_i, there are 2 ways.
 
 1. Proportional Prioritization
 
