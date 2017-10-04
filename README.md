@@ -265,9 +265,9 @@ I studied `Prioritized Experience Replay` with the paper [Prioritized Experience
 > The important transitions are measured by the `magnitude of their temporal difference (TD) error`
 
 The equation of TD Error is as follows.
-$$
-\delta_j = R_j + \gamma_j Q_{target}(S_j , argmax_a Q(S_j , a))-Q(S_{j-1}, A_{j-1})
-$$
+
+<img src="./Image/PER_equation1.png" width="500" alt="Combined Image" />
+
 
 
 However, greedy TD-error prioritization has several issues. 
@@ -281,9 +281,8 @@ However, greedy TD-error prioritization has several issues.
 To overcome these issues, stochastic sampling method that interpolates between `pure greedy prioritization` and `uniform random sampling`. 
 
 For guaranteeing a non-zero probability even for the lowest-priority transition, it defines the `probability of sampling transition` $$i$$ as
-$$
-P(i) = {p_i^\alpha}/{\Sigma_k p_k ^\alpha}
-$$
+
+<img src="./Image/PER_equation2.png" width="150" alt="Combined Image" />
 
 - $$p_i > 0$$ is the priority of transition $$i$$. 
 - The exponential $$\alpha $$ determines how much prioritization is used, with $$\alpha =0$$ corresponding to the uniform case. 
@@ -291,15 +290,13 @@ $$
 To determine $$p_i$$, there are 2 ways.
 
 1. Proportional Prioritization
-   - $$
-     p_i = |\delta_i |+\epsilon
-     $$
 
-   - ​epsilon is a small positive constant that prevents the edge-case of the transitions not being revisited once their error is zero.
+   <img src="./Image/PER_equation3.png" width="150" alt="Combined Image" />
+
+   - epsilon is a small positive constant that prevents the edge-case of the transitions not being revisited once their error is zero.
 2. Rank-based Prioritization
-   - $$
-     p_i = 1/rank(i)
-     $$
+
+   <img src="./Image/PER_equation4.png" width="150" alt="Combined Image" />
 
    - rank(i) is the rank of the transition i when the replay memory is sorted according to delta_i
 
