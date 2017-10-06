@@ -13,7 +13,7 @@ import time
 import Deep_Parameters
 game = Deep_Parameters.game
 
-algorithm = 'DQN' 
+algorithm = 'Duel_DQN' 
 
 Num_action = game.Return_Num_Action()
 game_name = game.ReturnName()
@@ -46,8 +46,8 @@ first_conv   = Deep_Parameters.first_conv
 second_conv  = Deep_Parameters.second_conv
 third_conv   = Deep_Parameters.third_conv
 first_dense  = Deep_Parameters.first_dense
-second_dense = Deep_Parameters.second_dense
-third_dense  = Deep_Parameters.third_dense
+second_dense_state  = [first_dense[1], 1]
+second_dense_action = [first_dense[1], Num_action]
 
 # If is train is false then immediately start testing 
 if Is_train == False:
@@ -83,12 +83,14 @@ def assign_network_to_target():
 	update_bconv1 = tf.assign(b_conv1_target, b_conv1)
 	update_bconv2 = tf.assign(b_conv2_target, b_conv2)
 	update_bconv3 = tf.assign(b_conv3_target, b_conv3)
-	update_wfc1   = tf.assign(w_fc1_target, w_fc1)
-	update_wfc2   = tf.assign(w_fc2_target, w_fc2)
-	update_wfc3   = tf.assign(w_fc3_target, w_fc3)
-	update_bfc1 = tf.assign(b_fc1_target, b_fc1)
-	update_bfc2 = tf.assign(b_fc2_target, b_fc2)
-	update_bfc3 = tf.assign(b_fc3_target, b_fc3)
+	update_wfc1_1 = tf.assign(w_fc1_1_target, w_fc1_1)
+	update_wfc1_2 = tf.assign(w_fc1_2_target, w_fc1_2)
+	update_wfc2_1 = tf.assign(w_fc2_1_target, w_fc2_1)
+	update_wfc2_2 = tf.assign(w_fc2_2_target, w_fc2_2)
+	update_bfc1_1 = tf.assign(b_fc1_1_target, b_fc1_1)
+	update_bfc1_2 = tf.assign(b_fc1_2_target, b_fc1_2)
+	update_bfc2_1 = tf.assign(b_fc2_1_target, b_fc2_1)
+	update_bfc2_2 = tf.assign(b_fc2_2_target, b_fc2_2)
 
 	sess.run(update_wconv1)
 	sess.run(update_wconv2)
@@ -96,12 +98,15 @@ def assign_network_to_target():
 	sess.run(update_bconv1)
 	sess.run(update_bconv2)
 	sess.run(update_bconv3)
-	sess.run(update_wfc1)
-	sess.run(update_wfc2)
-	sess.run(update_wfc3)
-	sess.run(update_bfc1)
-	sess.run(update_bfc2)
-	sess.run(update_bfc3)
+	sess.run(update_wfc1_1)
+	sess.run(update_wfc1_2)
+	sess.run(update_wfc2_1)
+	sess.run(update_wfc2_2)
+	sess.run(update_bfc1_1)
+	sess.run(update_bfc1_2)
+	sess.run(update_bfc2_1)
+	sess.run(update_bfc2_2)
+
 
 def resize_input(observation):
 	observation_out = cv2.resize(observation, (img_size, img_size))
@@ -127,14 +132,17 @@ w_conv3 = weight_variable(third_conv)
 b_conv3 = bias_variable([third_conv[3]])
 
 # Densely connect layer variables 
-w_fc1 = weight_variable(first_dense)
-b_fc1 = bias_variable([first_dense[1]])
+w_fc1_1 = weight_variable(first_dense)
+b_fc1_1 = bias_variable([first_dense[1]])
 
-w_fc2 = weight_variable(second_dense)
-b_fc2 = bias_variable([second_dense[1]])
+w_fc1_2 = weight_variable(first_dense)
+b_fc1_2 = bias_variable([first_dense[1]])
 
-w_fc3 = weight_variable(third_dense)
-b_fc3 = bias_variable([third_dense[1]])
+w_fc2_1 = weight_variable(second_dense_state)
+b_fc2_1 = bias_variable([second_dense_state[1]])
+
+w_fc2_2 = weight_variable(second_dense_action)
+b_fc2_2 = bias_variable([second_dense_action[1]])
 
 # Network
 h_conv1 = tf.nn.relu(conv2d(x_normalize, w_conv1, 4) + b_conv1)
@@ -142,10 +150,15 @@ h_conv2 = tf.nn.relu(conv2d(h_conv1, w_conv2, 2) + b_conv2)
 h_conv3 = tf.nn.relu(conv2d(h_conv2, w_conv3, 1) + b_conv3)
 
 h_pool3_flat = tf.reshape(h_conv3, [-1, first_dense[0]])
-h_fc1 = tf.nn.relu(tf.matmul(h_pool3_flat, w_fc1)+b_fc1)
-h_fc2 = tf.nn.relu(tf.matmul(h_fc1, w_fc2)+b_fc2)
+h_fc1_state  = tf.nn.relu(tf.matmul(h_pool3_flat, w_fc1_1)+b_fc1_1)
+h_fc1_action = tf.nn.relu(tf.matmul(h_pool3_flat, w_fc1_2)+b_fc1_2)
 
-output = tf.matmul(h_fc2, w_fc3) + b_fc3
+h_fc2_state  = tf.matmul(h_fc1_state,  w_fc2_1)+b_fc2_1
+h_fc2_action = tf.matmul(h_fc1_action, w_fc2_2)+b_fc2_2
+
+h_fc2_advantage = tf.subtract(h_fc2_action, tf.reduce_mean(h_fc2_action))
+
+output = tf.add(h_fc2_state, h_fc2_advantage)
 
 # Convolution variables target
 w_conv1_target = weight_variable(first_conv)
@@ -158,14 +171,17 @@ w_conv3_target = weight_variable(third_conv)
 b_conv3_target = bias_variable([third_conv[3]])
 
 # Densely connect layer variables target
-w_fc1_target = weight_variable(first_dense)
-b_fc1_target = bias_variable([first_dense[1]])
+w_fc1_1_target = weight_variable(first_dense)
+b_fc1_1_target = bias_variable([first_dense[1]])
 
-w_fc2_target = weight_variable(second_dense)
-b_fc2_target = bias_variable([second_dense[1]])
+w_fc1_2_target = weight_variable(first_dense)
+b_fc1_2_target = bias_variable([first_dense[1]])
 
-w_fc3_target = weight_variable(third_dense)
-b_fc3_target = bias_variable([third_dense[1]])
+w_fc2_1_target = weight_variable(second_dense_state)
+b_fc2_1_target = bias_variable([second_dense_state[1]])
+
+w_fc2_2_target = weight_variable(second_dense_action)
+b_fc2_2_target = bias_variable([second_dense_action[1]])
 
 # Target Network 
 h_conv1_target = tf.nn.relu(conv2d(x_normalize, w_conv1_target, 4) + b_conv1_target)
@@ -173,10 +189,16 @@ h_conv2_target = tf.nn.relu(conv2d(h_conv1_target, w_conv2_target, 2) + b_conv2_
 h_conv3_target = tf.nn.relu(conv2d(h_conv2_target, w_conv3_target, 1) + b_conv3_target)
 
 h_pool3_flat_target = tf.reshape(h_conv3_target, [-1, first_dense[0]])
-h_fc1_target = tf.nn.relu(tf.matmul(h_pool3_flat_target, w_fc1_target)+b_fc1_target)
-h_fc2_target = tf.nn.relu(tf.matmul(h_fc1_target, w_fc2_target)+b_fc2_target)
 
-output_target = tf.matmul(h_fc2_target, w_fc3_target) + b_fc3_target
+h_fc1_state_target  = tf.nn.relu(tf.matmul(h_pool3_flat_target, w_fc1_1_target)+b_fc1_1_target)
+h_fc1_action_target = tf.nn.relu(tf.matmul(h_pool3_flat_target, w_fc1_2_target)+b_fc1_2_target)
+
+h_fc2_state_target  = tf.matmul(h_fc1_state_target,  w_fc2_1_target)+b_fc2_1_target
+h_fc2_action_target = tf.matmul(h_fc1_action_target, w_fc2_2_target)+b_fc2_2_target
+
+h_fc2_advantage_target = tf.subtract(h_fc2_action_target, tf.reduce_mean(h_fc2_action_target))
+
+output_target = tf.add(h_fc2_state_target, h_fc2_advantage_target)
 
 # Loss function and Train 
 action_target = tf.placeholder(tf.float32, shape = [None, Num_action])
@@ -199,7 +221,7 @@ saver = tf.train.Saver()
 check_save = input('Is there any saved data?(1=y/2=n): ')
 
 if check_save == 1:
-    checkpoint = tf.train.get_checkpoint_state("saved_networks_DQN")
+    checkpoint = tf.train.get_checkpoint_state("4_saved_networks_Dueling_DQN")
     if checkpoint and checkpoint.model_checkpoint_path:
         saver.restore(sess, checkpoint.model_checkpoint_path)
         print("Successfully loaded:", checkpoint.model_checkpoint_path)
@@ -238,7 +260,8 @@ plot_y = []
 
 test_score = []
 
-check_plot = 0
+check_plot = 0 
+
 # Training & Testing 
 while True:
 	if step <= Num_start_training:
@@ -322,7 +345,7 @@ while True:
 
 	    # save progress every 10000 iterations
 		if step % Num_step_save == 0:
-			saver.save(sess, 'saved_networks_DQN/' + game_name)
+			saver.save(sess, '4_saved_networks_Dueling_DQN/' + game_name)
 			print('Model is saved!!!')
 
 	elif step < Num_start_training + Num_training + Num_test:
@@ -407,7 +430,7 @@ while True:
 	if episode % Num_plot_episode == 0 and episode != 0 and check_plot == 1:
 		plt.xlabel('Episode')
 		plt.ylabel('Score')
-		plt.title('Deep Q Network')
+		plt.title('Dueling Deep Q Network')
 		plt.grid(True)
 
 		plt.plot(np.average(plot_x), np.average(plot_y), hold = True, marker = '*', ms = 5)

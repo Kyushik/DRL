@@ -13,13 +13,13 @@ import time
 import Deep_Parameters
 game = Deep_Parameters.game
 
-algorithm = 'DDQN' 
+algorithm = 'PDD_DQN' 
 
 Num_action = game.Return_Num_Action()
 game_name = game.ReturnName()
 
 Gamma = Deep_Parameters.Gamma
-Learning_rate = Deep_Parameters.Learning_rate
+Learning_rate = Deep_Parameters.Learning_rate / 4
 Epsilon = Deep_Parameters.Epsilon
 Final_epsilon = Deep_Parameters.Final_epsilon
 
@@ -46,13 +46,20 @@ first_conv   = Deep_Parameters.first_conv
 second_conv  = Deep_Parameters.second_conv
 third_conv   = Deep_Parameters.third_conv
 first_dense  = Deep_Parameters.first_dense
-second_dense = Deep_Parameters.second_dense
-third_dense  = Deep_Parameters.third_dense
+second_dense_state  = [first_dense[1], 1]
+second_dense_action = [first_dense[1], Num_action]
 
 # If is train is false then immediately start testing 
 if Is_train == False:
 	Num_start_training = 0
 	Num_training = 0
+
+# Parameters for PER
+eps = 0.01
+
+alpha = 0.6
+beta_init = 0.4
+beta = beta_init
 
 # Initialize weights and bias 
 def weight_variable(shape):
@@ -83,12 +90,14 @@ def assign_network_to_target():
 	update_bconv1 = tf.assign(b_conv1_target, b_conv1)
 	update_bconv2 = tf.assign(b_conv2_target, b_conv2)
 	update_bconv3 = tf.assign(b_conv3_target, b_conv3)
-	update_wfc1   = tf.assign(w_fc1_target, w_fc1)
-	update_wfc2   = tf.assign(w_fc2_target, w_fc2)
-	update_wfc3   = tf.assign(w_fc3_target, w_fc3)
-	update_bfc1 = tf.assign(b_fc1_target, b_fc1)
-	update_bfc2 = tf.assign(b_fc2_target, b_fc2)
-	update_bfc3 = tf.assign(b_fc3_target, b_fc3)
+	update_wfc1_1 = tf.assign(w_fc1_1_target, w_fc1_1)
+	update_wfc1_2 = tf.assign(w_fc1_2_target, w_fc1_2)
+	update_wfc2_1 = tf.assign(w_fc2_1_target, w_fc2_1)
+	update_wfc2_2 = tf.assign(w_fc2_2_target, w_fc2_2)
+	update_bfc1_1 = tf.assign(b_fc1_1_target, b_fc1_1)
+	update_bfc1_2 = tf.assign(b_fc1_2_target, b_fc1_2)
+	update_bfc2_1 = tf.assign(b_fc2_1_target, b_fc2_1)
+	update_bfc2_2 = tf.assign(b_fc2_2_target, b_fc2_2)
 
 	sess.run(update_wconv1)
 	sess.run(update_wconv2)
@@ -96,12 +105,14 @@ def assign_network_to_target():
 	sess.run(update_bconv1)
 	sess.run(update_bconv2)
 	sess.run(update_bconv3)
-	sess.run(update_wfc1)
-	sess.run(update_wfc2)
-	sess.run(update_wfc3)
-	sess.run(update_bfc1)
-	sess.run(update_bfc2)
-	sess.run(update_bfc3)
+	sess.run(update_wfc1_1)
+	sess.run(update_wfc1_2)
+	sess.run(update_wfc2_1)
+	sess.run(update_wfc2_2)
+	sess.run(update_bfc1_1)
+	sess.run(update_bfc1_2)
+	sess.run(update_bfc2_1)
+	sess.run(update_bfc2_2)
 
 def resize_input(observation):
 	observation_out = cv2.resize(observation, (img_size, img_size))
@@ -114,7 +125,7 @@ def resize_input(observation):
 
 # Input 
 x_image = tf.placeholder(tf.float32, shape = [None, img_size, img_size, Num_colorChannel * Num_stackFrame])
-x_normalize = (x_image - (255.0/2)) / (255.0/2)
+x_normalize = (x_image - (255.0/2)) / (255.0 / 2)
 
 # Convolution variables 
 w_conv1 = weight_variable(first_conv)
@@ -127,14 +138,17 @@ w_conv3 = weight_variable(third_conv)
 b_conv3 = bias_variable([third_conv[3]])
 
 # Densely connect layer variables 
-w_fc1 = weight_variable(first_dense)
-b_fc1 = bias_variable([first_dense[1]])
+w_fc1_1 = weight_variable(first_dense)
+b_fc1_1 = bias_variable([first_dense[1]])
 
-w_fc2 = weight_variable(second_dense)
-b_fc2 = bias_variable([second_dense[1]])
+w_fc1_2 = weight_variable(first_dense)
+b_fc1_2 = bias_variable([first_dense[1]])
 
-w_fc3 = weight_variable(third_dense)
-b_fc3 = bias_variable([third_dense[1]])
+w_fc2_1 = weight_variable(second_dense_state)
+b_fc2_1 = bias_variable([second_dense_state[1]])
+
+w_fc2_2 = weight_variable(second_dense_action)
+b_fc2_2 = bias_variable([second_dense_action[1]])
 
 # Network
 h_conv1 = tf.nn.relu(conv2d(x_normalize, w_conv1, 4) + b_conv1)
@@ -142,10 +156,15 @@ h_conv2 = tf.nn.relu(conv2d(h_conv1, w_conv2, 2) + b_conv2)
 h_conv3 = tf.nn.relu(conv2d(h_conv2, w_conv3, 1) + b_conv3)
 
 h_pool3_flat = tf.reshape(h_conv3, [-1, first_dense[0]])
-h_fc1 = tf.nn.relu(tf.matmul(h_pool3_flat, w_fc1)+b_fc1)
-h_fc2 = tf.nn.relu(tf.matmul(h_fc1, w_fc2)+b_fc2)
+h_fc1_state  = tf.nn.relu(tf.matmul(h_pool3_flat, w_fc1_1)+b_fc1_1)
+h_fc1_action = tf.nn.relu(tf.matmul(h_pool3_flat, w_fc1_2)+b_fc1_2)
 
-output = tf.matmul(h_fc2, w_fc3) + b_fc3
+h_fc2_state  = tf.matmul(h_fc1_state,  w_fc2_1)+b_fc2_1
+h_fc2_action = tf.matmul(h_fc1_action, w_fc2_2)+b_fc2_2
+
+h_fc2_advantage = tf.subtract(h_fc2_action, tf.reduce_mean(h_fc2_action))
+
+output = tf.add(h_fc2_state, h_fc2_advantage)
 
 # Convolution variables target
 w_conv1_target = weight_variable(first_conv)
@@ -158,14 +177,17 @@ w_conv3_target = weight_variable(third_conv)
 b_conv3_target = bias_variable([third_conv[3]])
 
 # Densely connect layer variables target
-w_fc1_target = weight_variable(first_dense)
-b_fc1_target = bias_variable([first_dense[1]])
+w_fc1_1_target = weight_variable(first_dense)
+b_fc1_1_target = bias_variable([first_dense[1]])
 
-w_fc2_target = weight_variable(second_dense)
-b_fc2_target = bias_variable([second_dense[1]])
+w_fc1_2_target = weight_variable(first_dense)
+b_fc1_2_target = bias_variable([first_dense[1]])
 
-w_fc3_target = weight_variable(third_dense)
-b_fc3_target = bias_variable([third_dense[1]])
+w_fc2_1_target = weight_variable(second_dense_state)
+b_fc2_1_target = bias_variable([second_dense_state[1]])
+
+w_fc2_2_target = weight_variable(second_dense_action)
+b_fc2_2_target = bias_variable([second_dense_action[1]])
 
 # Target Network 
 h_conv1_target = tf.nn.relu(conv2d(x_normalize, w_conv1_target, 4) + b_conv1_target)
@@ -173,17 +195,30 @@ h_conv2_target = tf.nn.relu(conv2d(h_conv1_target, w_conv2_target, 2) + b_conv2_
 h_conv3_target = tf.nn.relu(conv2d(h_conv2_target, w_conv3_target, 1) + b_conv3_target)
 
 h_pool3_flat_target = tf.reshape(h_conv3_target, [-1, first_dense[0]])
-h_fc1_target = tf.nn.relu(tf.matmul(h_pool3_flat_target, w_fc1_target)+b_fc1_target)
-h_fc2_target = tf.nn.relu(tf.matmul(h_fc1_target, w_fc2_target)+b_fc2_target)
 
-output_target = tf.matmul(h_fc2_target, w_fc3_target) + b_fc3_target
+h_fc1_state_target  = tf.nn.relu(tf.matmul(h_pool3_flat_target, w_fc1_1_target)+b_fc1_1_target)
+h_fc1_action_target = tf.nn.relu(tf.matmul(h_pool3_flat_target, w_fc1_2_target)+b_fc1_2_target)
+
+h_fc2_state_target  = tf.matmul(h_fc1_state_target,  w_fc2_1_target)+b_fc2_1_target
+h_fc2_action_target = tf.matmul(h_fc1_action_target, w_fc2_2_target)+b_fc2_2_target
+
+h_fc2_advantage_target = tf.subtract(h_fc2_action_target, tf.reduce_mean(h_fc2_action_target))
+
+output_target = tf.add(h_fc2_state_target, h_fc2_advantage_target)
 
 # Loss function and Train 
 action_target = tf.placeholder(tf.float32, shape = [None, Num_action])
 y_prediction = tf.placeholder(tf.float32, shape = [None])
 
 y_target = tf.reduce_sum(tf.multiply(output, action_target), reduction_indices = 1)
-Loss = tf.reduce_mean(tf.square(y_prediction - y_target))
+# ################################################## PER ############################################################
+w_is = tf.placeholder(tf.float32, shape = [None])
+TD_error_tf = tf.subtract(y_prediction, y_target)
+
+# Loss = tf.reduce_mean(tf.square(y_prediction - y_target))
+Loss = tf.reduce_sum(tf.multiply(w_is, tf.square(y_prediction - y_target)))
+###################################################################################################################
+
 train_step = tf.train.AdamOptimizer(learning_rate = Learning_rate, epsilon = 1e-02).minimize(Loss)
 
 # Initialize variables
@@ -199,7 +234,7 @@ saver = tf.train.Saver()
 check_save = input('Is there any saved data?(1=y/2=n): ')
 
 if check_save == 1:
-    checkpoint = tf.train.get_checkpoint_state("saved_networks_DDQN")
+    checkpoint = tf.train.get_checkpoint_state("5_saved_netowkrs_PDD_DQN")
     if checkpoint and checkpoint.model_checkpoint_path:
         saver.restore(sess, checkpoint.model_checkpoint_path)
         print("Successfully loaded:", checkpoint.model_checkpoint_path)
@@ -208,6 +243,9 @@ if check_save == 1:
 
 # Initial parameters
 Replay_memory = []
+TD_list = np.array([])
+TD_sum = np.array([])
+
 step = 1
 score = 0 
 episode = 0
@@ -215,13 +253,12 @@ episode = 0
 # date - hour - minute of training time
 date_time = str(datetime.date.today()) + '_' + str(datetime.datetime.now().hour) + '_' + str(datetime.datetime.now().minute)
 
-# Get initial game information
+
 game_state = game.GameState()
 action = np.zeros([Num_action])
 observation, _, _ = game_state.frame_step(action)
 observation = resize_input(observation)
 
-# Initialize input data 
 observation_in = np.zeros([img_size, img_size, Num_colorChannel * Num_stackFrame])
 observation_next_in = np.zeros([img_size, img_size, Num_colorChannel * Num_stackFrame])
 
@@ -240,7 +277,6 @@ plot_y = []
 test_score = []
 
 check_plot = 0
-
 # Training & Testing 
 while True:
 	if step <= Num_start_training:
@@ -293,12 +329,31 @@ while True:
 
 		observation_next_in = np.uint8(observation_next_in)
 
+		# ################################################## PER ############################################################
+		TD_normalized = TD_list / sum(TD_list)
+		TD_sum = np.cumsum(TD_normalized)
+
+		weight_is = np.power((Num_replay_memory * TD_normalized), - beta)
+		weight_is = weight_is / np.max(weight_is)
+		# ###################################################################################################################
+
 		# Decrease the epsilon value 
 		if Epsilon > Final_epsilon:
 			Epsilon -= 1.0/Num_training
 
 		# Select minibatch
-		minibatch =  random.sample(Replay_memory, Num_batch)
+		################################################## PER ############################################################
+		minibatch = []
+		batch_index = []
+		w_batch = []
+		for i in range(Num_batch):
+			rand_batch = random.random()
+			TD_index = np.nonzero(TD_sum >= rand_batch)[0][0]
+			batch_index.append(TD_index)
+			w_batch.append(weight_is[TD_index])
+			minibatch.append(Replay_memory[TD_index])
+		
+		###################################################################################################################
 
 		# Save the each batch data 
 		observation_batch      = [batch[0] for batch in minibatch]
@@ -331,11 +386,20 @@ while True:
 
 		######################################################################################################
 
-		train_step.run(feed_dict = {action_target: action_batch, y_prediction: y_batch, x_image: observation_batch})
+		################################################## PER ############################################################
+		TD_error_batch = TD_error_tf.eval(feed_dict = {action_target: action_batch, y_prediction: y_batch, x_image: observation_batch})
+		for i_batch in range(len(batch_index)):
+			TD_list[batch_index[i_batch]] = pow((abs(TD_error_batch[i_batch]) + eps), alpha)
+
+		train_step.run(feed_dict = {action_target: action_batch, y_prediction: y_batch, x_image: observation_batch, w_is: w_batch})
+		
+		# Update Beta
+		beta = beta + (1 - beta_init) / Num_training
+		###################################################################################################################
 
 	    # save progress every 10000 iterations
 		if step % Num_step_save == 0:
-			saver.save(sess, 'saved_networks_DDQN/' + game_name)
+			saver.save(sess, '5_saved_netowkrs_PDD_DQN/' + game_name)
 			print('Model is saved!!!')
 
 	elif step < Num_start_training + Num_training + Num_test:
@@ -373,13 +437,28 @@ while True:
 		print('It takes ' + str(time.time() - start_time) + ' seconds to finish this algorithm!')
 		break	
 
+	# Save experience to the Replay memory 
+	Replay_memory.append([observation_in, action, reward, observation_next_in, terminal])
+
+	# ################################################## PER ############################################################
+	Q_batch = output_target.eval(feed_dict = {x_image: [observation_next_in]})
+	
+	if terminal == True:
+		y = [reward]
+	else:
+		y = [reward + Gamma * np.max(Q_batch)]
+
+	TD_error = TD_error_tf.eval(feed_dict = {action_target: [action], y_prediction: y, x_image: [observation_in]})[0]
+	TD_list = np.append(TD_list, pow((abs(TD_error) + eps), alpha))
+	
+	# ###################################################################################################################
+
 	# If length of replay memeory is more than the setting value then remove the first one
 	if len(Replay_memory) > Num_replay_memory:
 		del Replay_memory[0]
-
-	# Save experience to the Replay memory 
-	if progress != 'Testing':
-		Replay_memory.append([observation_in, action, reward, observation_next_in, terminal])
+		################################################## PER ############################################################
+		TD_list = np.delete(TD_list, 0)
+		###################################################################################################################
 
 	step += 1
 	score += reward 
@@ -396,7 +475,7 @@ while True:
 		plot_y.append(score)
 
 		check_plot = 1
-		
+
 		# If progress is testing then add score for calculating test score
 		if progress == 'Testing':
 			test_score.append(score)
@@ -420,7 +499,7 @@ while True:
 	if episode % Num_plot_episode == 0 and episode != 0 and check_plot == 1:
 		plt.xlabel('Episode')
 		plt.ylabel('Score')
-		plt.title('Double Deep Q Learning')
+		plt.title('Prioritized Dueling Double DQN')
 		plt.grid(True)
 
 		plt.plot(np.average(plot_x), np.average(plot_y), hold = True, marker = '*', ms = 5)
