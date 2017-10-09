@@ -6,7 +6,7 @@ This repository is the codes for `Deep Reinforcement Learning`
 <br> I set up the DQN code as follows. 
 * [Human-level Control Through Deep Reinforcement Learning](https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf)
 * [Deep Reinforcement Learning with Double Q-Learning](https://arxiv.org/abs/1509.06461)
-* [Prioritized Experience Replay](https://arxiv.org/abs/1511.05952) (Testing.... ✏️)
+* [Prioritized Experience Replay](https://arxiv.org/abs/1511.05952) 
 * [Dueling Network Architecture for Deep Reinforcement Learning](https://arxiv.org/abs/1511.06581)
 * [Deep Recurrent Q-Learning for Partially Observable MDPs](https://arxiv.org/abs/1507.06527) 
 
@@ -210,13 +210,18 @@ This is simple version of Dot.
 ## Deep Q Network (DQN)
 
 I studied `Deep Q Network` with the famous paper [Human-level control through deep reinforcement learning](http://www.nature.com/nature/journal/v518/n7540/full/nature14236.html) from Deep mind and `deep q network code` from [github of asrivat1](https://github.com/asrivat1/DeepLearningVideoGames).
-<br> After, I studied DQN and made my own code. 
-<br> I verified the code with the game `breakout`. 
-<br> The result graph is as follows. 
+After, I studied DQN and made my own code. 
 
-<p align= "center">
-  <img src="./Plot/2017-09-27_10_15_DQN_breakout18.4324324324.png" width="500" alt="Combined Image" />
-</p>
+
+<br> I verified the code with the game `breakout`. 
+
+The graph of average score is as follows.
+
+<img src="./Plot/2017-09-27_10_15_DQN_breakout18.4324324324.png" width="500" alt="Plot DQN" width="500" alt="Plot DDQN" />
+
+<br> The `average testing score is 18.43`
+
+
 
 Each point is the average score of 50 games. 
 <br> The graph shows that as the training progresses, the average score increases.
@@ -246,7 +251,7 @@ I studied `Double Deep Q Network` with the paper [Deep Reinforcement Learning wi
 
 The graph of average score is as follows.
 
-<img src="./Plot/2017-09-26_16_47_DDQN_breakout22.4.png" width="500" alt="Combined Image" />
+<img src="./Plot/2017-09-26_16_47_DDQN_breakout22.4.png" width="500" alt="Plot DDQN" />
 
 <br> The `average testing score is 22.4`
 
@@ -256,13 +261,13 @@ The graph of average score is as follows.
 
 I studied `Prioritized Experience Replay` with the paper [Prioritized Experience Replay](https://arxiv.org/abs/1511.05952)
 
-> In DQN algorithm, experience transition were uniformly sampled from a replay memory.
->
-> However, PER replays important transitions more frequently, and therefore learn more efficiently.
->
-> The `key idea` is the RL agent can learn more efficiently from some transitions than from others. 
->
-> The important transitions are measured by the `magnitude of their temporal difference (TD) error`
+In DQN algorithm, experience transition were uniformly sampled from a replay memory.
+
+However, PER replays important transitions more frequently, and therefore learn more efficiently.
+
+The `key idea` is the RL agent can learn more efficiently from some transitions than from others. 
+
+The important transitions are measured by the `magnitude of their temporal difference (TD) error`
 
 The equation of TD Error is as follows.
 
@@ -306,7 +311,73 @@ The algorithm of the prioritized experience replay is as follows.
 
 <img src="./Image/algorithm_PER.png" width="700" alt="Combined Image" />
 
-The algorithm is still testing, so the graph will be posted after that. 
+<br> I verified the algorithm with the game `breakout`. 
 
- 
+The graph of average score is as follows.
+
+<img src="./Plot/2017-10-06_16_17_PER_breakout40.4393939394.png" width="500" alt="Plot DDQN" />
+
+<br> The `average testing score is 40.44`!! Wow! :clap:
+
+---
+
+##Dueling Deep Q Network
+
+I studied `Dueling Deep Q Network` with the paper [Dueling Network Architecture for Deep Reinforcement Learning](https://arxiv.org/abs/1511.06581).
+
+This paper presents a new neural network architecture for model-free reinforcement learning. THis dueling network represents two separate estimators: 
+
+- State value function
+- Action advantage function
+
+<img src="./Image/architecture_Dueling.png" width="500" alt="Dueling Architecture" />
+
+The image at the top is single stream DQN and image at the bottom is dueling DQN. Dueling network has 2 streams to separately estimate (scalar) state-value and the advantages for each action. After that combine them to get final Q-values as output.
+
+The equation of Q-values is as follows. 
+
+<img src="./Image/Dueling_Equation1.png" width="500" alt="Dueling Equation" />
+
+ The V (s; θ, β) is provides an estimate of the value function. Also, A(s, a; θ, α) is result of advantage stream. The advantage function subtracts the average value of the advantage function to obtain a relative measure of the importance of each action. 
+
+The estimates V (s; θ, β) and A(s, a; θ, α) are computed automatically without any extra supervision or algorithmic modifications. Therefore, it is not difficult to implement this algorithm! :smile:
+
+
+
+<br> I verified the algorithm with the game `breakout`. 
+
+The graph of average score is as follows.
+
+<img src="./Plot/2017-09-26_22_46_Duel_DQN_breakout35.2872340426.png" width="500" alt="Plot Dueling-DQN" />
+
+<br> The `average testing score is 35.29`
+
+---
+
+## Deep Recurrent Q Network (DRQN)
+
+I studied `Deep Recurrent Q Network` with the paper [Deep Recurrent Q-Learning for Partially Observable MDPs](https://arxiv.org/abs/1507.06527).
+
+This paper adds recurrency to a DQN by replacing the first post-convolutional fully-connected layer with a recurrent LSTM. Single image input cannot reveal time related information (e.g. velocity, direction, etc). Therefore, DQN algorithm stacks 4 time series images to get this kind of information. In this paper, it uses LSTM to get sequential information. 
+
+As a result, it remembers events more distance than 4 screens in the past. Also, this algorithm better deals with `Partially-Observable Markov Decision Process (POMDP)` by leveraging advances in `Recurrent Neural Networks`.  
+
+The architecture of the DRQN is as follows. 
+
+<img src="./Image/architecture_DRQN.png" width="400" alt="Architecure DRQN" />
+
+
+
+DRQN convolves three times over a single-channel image of the game screen. The resulting activations are
+processed through time by an LSTM layer.  The last two timesteps are shown here. LSTM outputs become Q-Values after passing through a fully-connected layer. 
+
+
+
+<br> I verified the algorithm with the game `breakout`. 
+
+The graph of average score is as follows.
+
+<img src="./Plot/2017-10-02_5_37_DRQN_breakout14.9175084175.png" width="500" alt="Plot Dueling-DQN" />
+
+<br> The `average testing score is 14.92`
 
