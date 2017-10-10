@@ -77,35 +77,16 @@ def max_pool_2x2(x):
 	return tf.nn.max_pool(x, ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
 
 def assign_network_to_target():
-	update_wconv1 = tf.assign(w_conv1_target, w_conv1)
-	update_wconv2 = tf.assign(w_conv2_target, w_conv2)
-	update_wconv3 = tf.assign(w_conv3_target, w_conv3)
-	update_bconv1 = tf.assign(b_conv1_target, b_conv1)
-	update_bconv2 = tf.assign(b_conv2_target, b_conv2)
-	update_bconv3 = tf.assign(b_conv3_target, b_conv3)
-	update_wfc1_1 = tf.assign(w_fc1_1_target, w_fc1_1)
-	update_wfc1_2 = tf.assign(w_fc1_2_target, w_fc1_2)
-	update_wfc2_1 = tf.assign(w_fc2_1_target, w_fc2_1)
-	update_wfc2_2 = tf.assign(w_fc2_2_target, w_fc2_2)
-	update_bfc1_1 = tf.assign(b_fc1_1_target, b_fc1_1)
-	update_bfc1_2 = tf.assign(b_fc1_2_target, b_fc1_2)
-	update_bfc2_1 = tf.assign(b_fc2_1_target, b_fc2_1)
-	update_bfc2_2 = tf.assign(b_fc2_2_target, b_fc2_2)
+    	# Get trainable variables
+	trainable_variables = tf.trainable_variables()
+	# network lstm variables
+	trainable_variables_network = [var for var in trainable_variables if var.name.startswith('network')]
 
-	sess.run(update_wconv1)
-	sess.run(update_wconv2)
-	sess.run(update_wconv3)
-	sess.run(update_bconv1)
-	sess.run(update_bconv2)
-	sess.run(update_bconv3)
-	sess.run(update_wfc1_1)
-	sess.run(update_wfc1_2)
-	sess.run(update_wfc2_1)
-	sess.run(update_wfc2_2)
-	sess.run(update_bfc1_1)
-	sess.run(update_bfc1_2)
-	sess.run(update_bfc2_1)
-	sess.run(update_bfc2_2)
+	# target lstm variables
+	trainable_variables_target = [var for var in trainable_variables if var.name.startswith('target')]
+
+	for i in range(len(trainable_variables_network)):
+		sess.run(tf.assign(trainable_variables_target[i], trainable_variables_network[i]))
 
 
 def resize_input(observation):
@@ -121,28 +102,29 @@ def resize_input(observation):
 x_image = tf.placeholder(tf.float32, shape = [None, img_size, img_size, Num_colorChannel * Num_stackFrame])
 x_normalize = (x_image - (255.0/2)) / (255.0/2)
 
-# Convolution variables 
-w_conv1 = weight_variable(first_conv)
-b_conv1 = bias_variable([first_conv[3]])
+with tf.variable_scope('network'):
+	# Convolution variables 
+	w_conv1 = weight_variable(first_conv)
+	b_conv1 = bias_variable([first_conv[3]])
 
-w_conv2 = weight_variable(second_conv)
-b_conv2 = bias_variable([second_conv[3]])
+	w_conv2 = weight_variable(second_conv)
+	b_conv2 = bias_variable([second_conv[3]])
 
-w_conv3 = weight_variable(third_conv)
-b_conv3 = bias_variable([third_conv[3]])
+	w_conv3 = weight_variable(third_conv)
+	b_conv3 = bias_variable([third_conv[3]])
 
-# Densely connect layer variables 
-w_fc1_1 = weight_variable(first_dense)
-b_fc1_1 = bias_variable([first_dense[1]])
+	# Densely connect layer variables 
+	w_fc1_1 = weight_variable(first_dense)
+	b_fc1_1 = bias_variable([first_dense[1]])
 
-w_fc1_2 = weight_variable(first_dense)
-b_fc1_2 = bias_variable([first_dense[1]])
+	w_fc1_2 = weight_variable(first_dense)
+	b_fc1_2 = bias_variable([first_dense[1]])
 
-w_fc2_1 = weight_variable(second_dense_state)
-b_fc2_1 = bias_variable([second_dense_state[1]])
+	w_fc2_1 = weight_variable(second_dense_state)
+	b_fc2_1 = bias_variable([second_dense_state[1]])
 
-w_fc2_2 = weight_variable(second_dense_action)
-b_fc2_2 = bias_variable([second_dense_action[1]])
+	w_fc2_2 = weight_variable(second_dense_action)
+	b_fc2_2 = bias_variable([second_dense_action[1]])
 
 # Network
 h_conv1 = tf.nn.relu(conv2d(x_normalize, w_conv1, 4) + b_conv1)
@@ -160,28 +142,29 @@ h_fc2_advantage = tf.subtract(h_fc2_action, tf.reduce_mean(h_fc2_action))
 
 output = tf.add(h_fc2_state, h_fc2_advantage)
 
-# Convolution variables target
-w_conv1_target = weight_variable(first_conv)
-b_conv1_target = bias_variable([first_conv[3]])
+with tf.variable_scope('target'):
+	# Convolution variables target
+	w_conv1_target = weight_variable(first_conv)
+	b_conv1_target = bias_variable([first_conv[3]])
 
-w_conv2_target = weight_variable(second_conv)
-b_conv2_target = bias_variable([second_conv[3]])
+	w_conv2_target = weight_variable(second_conv)
+	b_conv2_target = bias_variable([second_conv[3]])
 
-w_conv3_target = weight_variable(third_conv)
-b_conv3_target = bias_variable([third_conv[3]])
+	w_conv3_target = weight_variable(third_conv)
+	b_conv3_target = bias_variable([third_conv[3]])
 
-# Densely connect layer variables target
-w_fc1_1_target = weight_variable(first_dense)
-b_fc1_1_target = bias_variable([first_dense[1]])
+	# Densely connect layer variables target
+	w_fc1_1_target = weight_variable(first_dense)
+	b_fc1_1_target = bias_variable([first_dense[1]])
 
-w_fc1_2_target = weight_variable(first_dense)
-b_fc1_2_target = bias_variable([first_dense[1]])
+	w_fc1_2_target = weight_variable(first_dense)
+	b_fc1_2_target = bias_variable([first_dense[1]])
 
-w_fc2_1_target = weight_variable(second_dense_state)
-b_fc2_1_target = bias_variable([second_dense_state[1]])
+	w_fc2_1_target = weight_variable(second_dense_state)
+	b_fc2_1_target = bias_variable([second_dense_state[1]])
 
-w_fc2_2_target = weight_variable(second_dense_action)
-b_fc2_2_target = bias_variable([second_dense_action[1]])
+	w_fc2_2_target = weight_variable(second_dense_action)
+	b_fc2_2_target = bias_variable([second_dense_action[1]])
 
 # Target Network 
 h_conv1_target = tf.nn.relu(conv2d(x_normalize, w_conv1_target, 4) + b_conv1_target)
