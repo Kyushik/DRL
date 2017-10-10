@@ -377,7 +377,7 @@ processed through time by an LSTM layer.  The last two timesteps are shown here.
 
 The graph of average score is as follows.
 
-<img src="./Plot/2017-10-02_5_37_DRQN_breakout14.9175084175.png" width="500" alt="Plot Dueling-DQN" />
+<img src="./Plot/2017-10-09_18_38_DRQN_breakout18.2213114754.png" width="500" alt="Plot Dueling-DQN" />
 
-<br> The `average testing score is 14.92`
+<br> The `average testing score is 18.22`
 
