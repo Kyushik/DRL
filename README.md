@@ -9,6 +9,7 @@ This repository is the codes for `Deep Reinforcement Learning`
 * [Prioritized Experience Replay](https://arxiv.org/abs/1511.05952) 
 * [Dueling Network Architecture for Deep Reinforcement Learning](https://arxiv.org/abs/1511.06581)
 * [Deep Recurrent Q-Learning for Partially Observable MDPs](https://arxiv.org/abs/1507.06527) 
+* [Noisy Networks for Exploration](https://arxiv.org/abs/1706.10295) 
 
 
 
@@ -380,4 +381,47 @@ The graph of average score is as follows.
 <img src="./Plot/2017-10-09_18_38_DRQN_breakout18.2213114754.png" width="500" alt="Plot Dueling-DQN" />
 
 <br> The `average testing score is 18.22`
+
+---
+
+## NoisyNet Deep Q Network
+
+I studied `Noisy Deep Q Network` with the paper [Noisy Networks for Exploration](https://arxiv.org/abs/1706.10295).
+
+This algorithm is a deep reinforcement learning agent with parametric noise added to its weights. The parameters of the noise are learned with gradient descent along with the remaining network weights. 
+
+- NoisyNet learned perturbations of the network weights are used to drive exploration.
+- Noise is added to the policy at every step.
+- The perturbations are sampled from a noise distribution.
+- The variance of the perturbations is a parameter that can be considered as the energy of the injected noise.
+- Variance parameters are learned using gradients from the reinforcement learning loss function.
+- Epsilon greedy is no longer used, but instead the policy greedily optimises the value function.
+
+
+
+In the paper, description of the NoisyNet is as follows. It replaces the linear layers by noisy layers.
+
+<img src="./Image/NoisyNet_Description.PNG" alt="NoisyNet_Description" />
+
+
+
+There are more variables for NoisyNet (`mu` and `sigma`). Therefore, the loss function of algorithms is also changed. DQN loss becomes the NoisyNet-DQN loss as follows.
+
+<img src="./Image/NoisyNet_Loss.PNG" width="500" alt="Plot Dueling-DQN" />
+
+Outer expectation is with respect to distribution of the noise variables *epsilon* for the noisy value function Q(x, a, epsilon; zeta) and the noise variable *epsilon`* of the noisy target value function Q(y, b, epsilon`;target zeta).
+
+
+
+The algorithm from the paper is as follows. 
+
+<img src="./Image/NoisyNet_Algorithm.PNG" width="500" alt="Plot Dueling-DQN" />
+
+<br> I verified the algorithm with the game `breakout`. 
+
+The graph of average score is as follows.
+
+<img src="./Plot/2017-10-16_11_20_Noisy_DQN_breakout47.7882352941.png" width="500" alt="Plot NoisyNet-DQN" />
+
+<br> The `average testing score is 47.79!!` wow! :surprise:
 
