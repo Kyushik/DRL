@@ -1,19 +1,19 @@
-# Import modules 
-import sys 
+# Import modules
+import sys
 import pygame
-import tensorflow as tf 
+import tensorflow as tf
 import cv2
-import random 
-import numpy as np 
-import matplotlib.pyplot as plt 
-import datetime 
-import time 
+import random
+import numpy as np
+import matplotlib.pyplot as plt
+import datetime
+import time
 
 # Parameter Setting
 import Deep_Parameters
 game = Deep_Parameters.game
 
-algorithm = 'DRQN' 
+algorithm = 'DRQN'
 
 Num_action = game.Return_Num_Action()
 game_name = game.ReturnName()
@@ -51,12 +51,12 @@ second_conv  = Deep_Parameters.second_conv
 third_conv   = Deep_Parameters.third_conv
 first_dense  = [lstm_size, Num_action]
 
-# If is train is false then immediately start testing 
+# If is train is false then immediately start testing
 if Is_train == False:
 	Num_start_training = 0
 	Num_training = 0
 
-# Initialize weights and bias 
+# Initialize weights and bias
 def weight_variable(shape):
     return tf.Variable(xavier_initializer(shape))
 
@@ -95,16 +95,16 @@ def resize_input(observation):
 	if Num_colorChannel == 1:
 		observation_out = cv2.cvtColor(observation_out, cv2.COLOR_BGR2GRAY)
 		observation_out = np.reshape(observation_out, (img_size, img_size, 1))
-	
-	observation_out = np.uint8(observation_out)
-	return observation_out 
 
-# Input 
+	observation_out = np.uint8(observation_out)
+	return observation_out
+
+# Input
 x_image = tf.placeholder(tf.float32, shape = [None, img_size, img_size, Num_colorChannel])
 x_normalize = (x_image - (255.0/2)) / (255.0/2)
 
 with tf.variable_scope('network'):
-	# Convolution variables 
+	# Convolution variables
 	w_conv1 = weight_variable(first_conv)
 	b_conv1 = bias_variable([first_conv[3]])
 
@@ -114,7 +114,7 @@ with tf.variable_scope('network'):
 	w_conv3 = weight_variable(third_conv)
 	b_conv3 = bias_variable([third_conv[3]])
 
-	# Densely connect layer variables 
+	# Densely connect layer variables
 	w_fc1 = weight_variable(first_dense)
 	b_fc1 = bias_variable([first_dense[1]])
 
@@ -152,7 +152,7 @@ with tf.variable_scope('target'):
 	w_fc1_target = weight_variable(first_dense)
 	b_fc1_target = bias_variable([first_dense[1]])
 
-	# Target Network 
+	# Target Network
 	h_conv1_target = tf.nn.relu(conv2d(x_normalize, w_conv1_target, 4) + b_conv1_target)
 	h_conv2_target = tf.nn.relu(conv2d(h_conv1_target, w_conv2_target, 2) + b_conv2_target)
 	h_conv3_target = tf.nn.relu(conv2d(h_conv2_target, w_conv3_target, 1) + b_conv3_target)
@@ -168,7 +168,7 @@ rnn_out_target = tf.reshape(rnn_out_target, shape = [rnn_batch_size , -1])
 
 output_target = tf.matmul(rnn_out_target, w_fc1_target) + b_fc1_target
 
-# Loss function and Train 
+# Loss function and Train
 action_target = tf.placeholder(tf.float32, shape = [None, Num_action])
 y_prediction = tf.placeholder(tf.float32, shape = [None])
 
@@ -199,7 +199,7 @@ if check_save == 1:
 # Initial parameters
 Replay_memory = []
 step = 1
-score = 0 
+score = 0
 episode = 0
 
 # date - hour - minute of training time
@@ -213,11 +213,11 @@ action = np.zeros([Num_action])
 observation, _, _ = game_state.frame_step(action)
 observation = resize_input(observation)
 
-# Initialize observation set 
+# Initialize observation set
 for i in range(step_size):
 	observation_set.append(observation)
 
-start_time = time.time() 
+start_time = time.time()
 
 # Figure and figure data setting
 plt.figure(1)
@@ -227,7 +227,7 @@ plot_y = []
 test_score = []
 
 check_plot = 0
-# Training & Testing 
+# Training & Testing
 while True:
 	if step <= Num_start_training:
 		# Observation
@@ -240,10 +240,10 @@ while True:
 		observation_next = resize_input(observation_next)
 
 	elif step <= Num_start_training + Num_training:
-		# Training 
+		# Training
 		progress = 'Training'
 
-		# if random value(0 - 1) is smaller than Epsilon, action is random. Otherwise, action is the one which has the largest Q value 
+		# if random value(0 - 1) is smaller than Epsilon, action is random. Otherwise, action is the one which has the largest Q value
 		if random.random() < Epsilon:
 			action = np.zeros([Num_action])
 			action[random.randint(0, Num_action - 1)] = 1
@@ -255,12 +255,12 @@ while True:
 		observation_next, reward, terminal = game_state.frame_step(action)
 		observation_next = resize_input(observation_next)
 
-		# Decrease the epsilon value 
+		# Decrease the epsilon value
 		if Epsilon > Final_epsilon:
 			Epsilon -= 1.0/Num_training
 
 		# Select minibatch
-		episode_batch = random.sample(Replay_memory, Num_batch)		
+		episode_batch = random.sample(Replay_memory, Num_batch)
 
 		minibatch = []
 		batch_end_index = []
@@ -274,19 +274,19 @@ while True:
 					batch_end_index.append(count_minibatch)
 
 				count_minibatch += 1
-				
-		# Save the each batch data 
+
+		# Save the each batch data
 		observation_batch      = [batch[0] for batch in minibatch]
 		action_batch           = [batch[1] for batch in minibatch]
 		reward_batch           = [batch[2] for batch in minibatch]
 		observation_next_batch = [batch[3] for batch in minibatch]
 		terminal_batch 	       = [batch[4] for batch in minibatch]
 
-		# Update target network according to the Num_update value 
+		# Update target network according to the Num_update value
 		if step % Num_update == 0:
 			assign_network_to_target()
 
-		# Get y_prediction 
+		# Get y_prediction
 		y_batch = []
 		action_in = []
 
@@ -298,7 +298,7 @@ while True:
 				y_batch.append(reward_batch[i])
 			else:
 				y_batch.append(reward_batch[i] + Gamma * np.max(Q_batch[count]))
-		
+
 		train_step.run(feed_dict = {action_target: action_in, y_prediction: y_batch, x_image: observation_batch, rnn_batch_size: Num_batch, rnn_step_size: step_size})
 
 	    # save progress every 10000 iterations
@@ -315,31 +315,31 @@ while True:
 		Q_value = output.eval(feed_dict={x_image: observation_set, rnn_batch_size: 1, rnn_step_size: step_size})[0]
 		action = np.zeros([Num_action])
 		action[np.argmax(Q_value)] = 1
-			
+
 		# Get game state
 		observation_next, reward, terminal = game_state.frame_step(action)
 		observation_next = resize_input(observation_next)
 
 	else:
-		mean_score_test = np.average(test_score) 
+		mean_score_test = np.average(test_score)
 		print(game_name + str(mean_score_test))
-		plt.savefig('./Plot/' + date_time + '_' + algorithm + '_' + game_name + str(mean_score_test) + '.png')		
+		plt.savefig('./Plot/' + date_time + '_' + algorithm + '_' + game_name + str(mean_score_test) + '.png')
 
-		# Finish the Code 
+		# Finish the Code
 		print('It takes ' + str(time.time() - start_time) + ' seconds to finish this algorithm!')
-		break	
+		break
 
 	# If length of replay memeory is more than the setting value then remove the first one
 	if len(Replay_memory) > Num_replay_episode:
 		del Replay_memory[0]
 
-	# Save experience to the Replay memory 
+	# Save experience to the Replay memory
 	if progress != 'Testing':
-		# Save experience to the Replay memory 
+		# Save experience to the Replay memory
 		episode_memory.append([observation, action, reward, observation_next, terminal])
 
 	step += 1
-	score += reward 
+	score += reward
 
 	observation = observation_next
 	observation_set.append(observation)
@@ -350,7 +350,7 @@ while True:
 	# If terminal is True
 	if terminal == True:
 		# Print informations
-		print('step: ' + str(step) + ' / '  + 'episode: ' + str(episode) + ' / ' + 'progress: ' + progress  + ' / '  + 'epsilon: ' + str(Epsilon) + ' / '  + 'score: ' + str(score)) 
+		print('step: ' + str(step) + ' / '  + 'episode: ' + str(episode) + ' / ' + 'progress: ' + progress  + ' / '  + 'epsilon: ' + str(Epsilon) + ' / '  + 'score: ' + str(score))
 
 		# Add data for plotting
 		plot_x.append(episode)
@@ -362,7 +362,7 @@ while True:
 		if progress == 'Testing':
 			test_score.append(score)
 
-		# Initialize score and add 1 to episode number 
+		# Initialize score and add 1 to episode number
 		score = 0
 
 		if progress != 'Observing':
@@ -392,6 +392,6 @@ while True:
 		plt.pause(0.000001)
 
 		plot_x = []
-		plot_y = [] 
+		plot_y = []
 
 		check_plot = 0

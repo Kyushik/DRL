@@ -1,20 +1,20 @@
 # This is parameter setting for all deep learning algorithms
-import sys 
+import sys
 # Import games
 sys.path.append("DQN_GAMES/")
 
 # Action Num
 import pong
-import dot  
-import dot_test  
-import tetris  
+import dot
+import dot_test
+import tetris
 import wormy
 import breakout as game
 
 Gamma = 0.99
 Learning_rate = 0.00025
-Epsilon = 1 
-Final_epsilon = 0.1 
+Epsilon = 1
+Final_epsilon = 0.1
 
 Num_action = game.Return_Num_Action()
 
@@ -31,7 +31,7 @@ Num_colorChannel = 1
 Num_plot_episode = 50
 Num_step_save = 50000
 
-GPU_fraction = 0.4
+GPU_fraction = 0.3
 Is_train = True
 
 img_size = 80
@@ -39,6 +39,5 @@ img_size = 80
 first_conv   = [8,8,Num_colorChannel * Num_stackFrame,32]
 second_conv  = [4,4,32,64]
 third_conv   = [3,3,64,64]
-first_dense  = [10*10*64, 1024]
-second_dense = [1024, 256]
-third_dense  = [256, Num_action]
+first_dense  = [10*10*64, 512]
+second_dense = [512, Num_action]
