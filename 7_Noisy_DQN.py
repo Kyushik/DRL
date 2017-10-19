@@ -105,13 +105,6 @@ def noisy_dense(input_, input_shape, mu_w, sig_w, mu_b, sig_b, is_train_process)
 	eps_w = tf.cond(is_train_process, lambda: tf.random_normal(input_shape), lambda: tf.zeros(input_shape))
 	eps_b = tf.cond(is_train_process, lambda: tf.random_normal([input_shape[1]]), lambda: tf.zeros([input_shape[1]]))
 
-	# if is_train_process == True:
-	# 	eps_w = tf.random_normal(input_shape)
-	# 	eps_b = tf.random_normal([input_shape[1]])
-	# else:
-	# 	eps_w = tf.zeros(input_shape)
-	# 	eps_b = tf.zeros([input_shape[1]])
-
 	w_fc = tf.add(mu_w, tf.multiply(sig_w, eps_w))
 	b_fc = tf.add(mu_b, tf.multiply(sig_b, eps_b))
 
@@ -143,21 +136,11 @@ with tf.variable_scope('network'):
 	sig_w1 = sigma_variable(first_dense)
 	mu_b1  = mu_variable([first_dense[1]])
 	sig_b1 = sigma_variable([first_dense[1]])
-	# eps_w1 = tf.random_normal(first_dense)
-	# eps_b1 = tf.random_normal([first_dense[1]])
-	#
-	# w_fc1 = tf.add(mu_w1, tf.multiply(sig_w1, eps_w1))
-	# b_fc1 = tf.add(mu_b1, tf.multiply(sig_b1, eps_b1))
 
 	mu_w2  = mu_variable(second_dense)
 	sig_w2 = sigma_variable(second_dense)
 	mu_b2  = mu_variable([second_dense[1]])
 	sig_b2 = sigma_variable([second_dense[1]])
-	# eps_w2 = tf.random_normal(second_dense)
-	# eps_b2 = tf.random_normal([second_dense[1]])
-	#
-	# w_fc2 = tf.add(mu_w2, tf.multiply(sig_w2, eps_w2))
-	# b_fc2 = tf.add(mu_b2, tf.multiply(sig_b2, eps_b2))
 #####################################################################################################
 
 # Network
@@ -167,10 +150,6 @@ h_conv3 = tf.nn.relu(conv2d(h_conv2, w_conv3, 1) + b_conv3)
 
 h_pool3_flat = tf.reshape(h_conv3, [-1, first_dense[0]])
 
-# h_fc1 = tf.nn.relu(tf.matmul(h_pool3_flat, w_fc1)+b_fc1)
-# h_fc2 = tf.nn.relu(tf.matmul(h_fc1, w_fc2)+b_fc2)
-#
-# output = tf.matmul(h_fc2, w_fc3) + b_fc3
 ########################################### Noisy Network ###########################################
 h_fc1 = tf.nn.relu(noisy_dense(h_pool3_flat, first_dense, mu_w1, sig_w1, mu_b1, sig_b1, train_process))
 output = noisy_dense(h_fc1, second_dense, mu_w2, sig_w2, mu_b2, sig_b2, train_process)
@@ -193,21 +172,11 @@ with tf.variable_scope('target'):
 	sig_w1_target = sigma_variable(first_dense)
 	mu_b1_target  = mu_variable([first_dense[1]])
 	sig_b1_target = sigma_variable([first_dense[1]])
-	# eps_w1_target = tf.random_normal(first_dense)
-	# eps_b1_target = tf.random_normal([first_dense[1]])
-	#
-	# w_fc1_target = tf.add(mu_w1_target, tf.multiply(sig_w1_target, eps_w1_target))
-	# b_fc1_target = tf.add(mu_b1_target, tf.multiply(sig_b1_target, eps_b1_target))
 
 	mu_w2_target  = mu_variable(second_dense)
 	sig_w2_target = sigma_variable(second_dense)
 	mu_b2_target  = mu_variable([second_dense[1]])
 	sig_b2_target = sigma_variable([second_dense[1]])
-	# eps_w2_target = tf.random_normal(second_dense)
-	# eps_b2_target = tf.random_normal([second_dense[1]])
-	#
-	# w_fc2_target = tf.add(mu_w2_target, tf.multiply(sig_w2_target, eps_w2_target))
-	# b_fc2_target = tf.add(mu_b2_target, tf.multiply(sig_b2_target, eps_b2_target))
 #####################################################################################################
 
 # Target Network
@@ -216,10 +185,6 @@ h_conv2_target = tf.nn.relu(conv2d(h_conv1_target, w_conv2_target, 2) + b_conv2_
 h_conv3_target = tf.nn.relu(conv2d(h_conv2_target, w_conv3_target, 1) + b_conv3_target)
 
 h_pool3_flat_target = tf.reshape(h_conv3_target, [-1, first_dense[0]])
-# h_fc1_target = tf.nn.relu(tf.matmul(h_pool3_flat_target, w_fc1_target)+b_fc1_target)
-# h_fc2_target = tf.nn.relu(tf.matmul(h_fc1_target, w_fc2_target)+b_fc2_target)
-#
-# output_target = tf.matmul(h_fc2_target, w_fc3_target) + b_fc3_target
 
 ########################################### Noisy Network ###########################################
 h_fc1_target = tf.nn.relu(noisy_dense(h_pool3_flat_target, first_dense, mu_w1_target, sig_w1_target, mu_b1_target, sig_b1_target, train_process))
