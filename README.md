@@ -136,13 +136,11 @@ Rule
 
 - Actions: left slow, left fast, Stay, right slow, right fast (5 actions)
 
-- If agent hit the ball, get +0.5 reward
-
 - If ball breaks one block, get +1 reward
 
 - If ball get to the ground, get -1 reward
 
-- If agent breaks all of the blocks get +10 points!!
+- If agent breaks all of the blocks get +11 points!! (total 60 points)
 
   ​
 
@@ -218,9 +216,9 @@ After, I studied DQN and made my own code.
 
 The graph of average score is as follows.
 
-<img src="./Plot/2017-09-27_10_15_DQN_breakout18.4324324324.png" width="500" alt="Plot DQN" width="500" alt="Plot DDQN" />
+<img src="./Plot/2017-10-19_10_28_DQN_breakout11.1461538462.png" width="500" alt="Plot DQN" />
 
-<br> The `average testing score is 18.43`
+<br> The `average testing score is 11.14`
 
 
 
@@ -252,9 +250,9 @@ I studied `Double Deep Q Network` with the paper [Deep Reinforcement Learning wi
 
 The graph of average score is as follows.
 
-<img src="./Plot/2017-09-26_16_47_DDQN_breakout22.4.png" width="500" alt="Plot DDQN" />
+<img src="./Plot/2017-10-19_14_32_DDQN_breakout11.7741935484.png" width="500" alt="Plot DDQN" />
 
-<br> The `average testing score is 22.4`
+<br> The `average testing score is 11.77`
 
 ---
 
@@ -316,9 +314,9 @@ The algorithm of the prioritized experience replay is as follows.
 
 The graph of average score is as follows.
 
-<img src="./Plot/2017-10-06_16_17_PER_breakout40.4393939394.png" width="500" alt="Plot DDQN" />
+<img src="./Plot/2017-10-19_20_34_PER_breakout21.024.png" width="500" alt="Plot DDQN" />
 
-<br> The `average testing score is 40.44`!! Wow! :clap:
+<br> The `average testing score is 21.02`!! Wow! :clap:
 
 ---
 
@@ -349,9 +347,9 @@ The estimates V (s; θ, β) and A(s, a; θ, α) are computed automatically witho
 
 The graph of average score is as follows.
 
-<img src="./Plot/2017-09-26_22_46_Duel_DQN_breakout35.2872340426.png" width="500" alt="Plot Dueling-DQN" />
+<img src="./Plot/2017-10-19_13_47_Duel_DQN_breakout17.7396449704.png" width="500" alt="Plot Dueling-DQN" />
 
-<br> The `average testing score is 35.29`
+<br> The `average testing score is 17.73`
 
 ---
 
@@ -378,9 +376,9 @@ processed through time by an LSTM layer.  The last two timesteps are shown here.
 
 The graph of average score is as follows.
 
-<img src="./Plot/2017-10-09_18_38_DRQN_breakout18.2213114754.png" width="500" alt="Plot Dueling-DQN" />
+<img src="./Plot/2017-10-19_19_51_DRQN_breakout13.8416289593.png" width="500" alt="Plot Dueling-DQN" />
 
-<br> The `average testing score is 18.22`
+<br> The `average testing score is 13.84`
 
 ---
 
@@ -421,7 +419,7 @@ The algorithm from the paper is as follows.
 
 The graph of average score is as follows.
 
-<img src="./Plot/2017-10-16_11_20_Noisy_DQN_breakout47.7882352941.png" width="500" alt="Plot NoisyNet-DQN" />
+<img src="./Plot/2017-10-19_0_41_Noisy_DQN_breakout41.7384615385.png" width="500" alt="Plot NoisyNet-DQN" />
 
-<br> The `average testing score is 47.79!!` wow! :surprise:
+<br> The `average testing score is 41.73!!` wow!  
 

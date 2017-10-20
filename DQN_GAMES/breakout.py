@@ -1,7 +1,7 @@
 # Atari breakout
 # By KyushikMin kyushikmin@gamil.com
-# http://mmc.hanyang.ac.kr 
-# Special thanks to my colleague Hayoung and Jongwon for giving me the idea of ball and block collision algorithm 
+# http://mmc.hanyang.ac.kr
+# Special thanks to my colleague Hayoung and Jongwon for giving me the idea of ball and block collision algorithm
 
 import random, sys, time, math, pygame
 from pygame.locals import *
@@ -9,7 +9,7 @@ import numpy as np
 import copy
 
 # Window Information
-FPS = 30 
+FPS = 30
 WINDOW_WIDTH = 480
 WINDOW_HEIGHT = 400
 
@@ -40,7 +40,7 @@ bar_init_position = (WINDOW_WIDTH - bar_width)/2
 ball_init_position_x = WINDOW_WIDTH / 2
 ball_init_position_y = (WINDOW_HEIGHT - INFO_GAP) / 2 + UPPER_GAP
 ball_radius = 5
-ball_bounce_speed_range = 10
+ball_bounce_speed_range = 8
 
 block_width  = 48
 block_height = 18
@@ -82,7 +82,7 @@ class GameState:
 		self.ball_position_y = ball_init_position_y
 		self.ball_position_x_old = ball_init_position_x
 		self.ball_position_y_old = ball_init_position_y
-		
+
 		# self.ball_speed_x = random.randint(-3, 3)
 		self.ball_speed_x = random.uniform(-3.0, 3.0)
 		self.ball_speed_y = 5
@@ -127,14 +127,14 @@ class GameState:
 				self.terminate()
 
 		if input[1] == 1:
-			self.bar_position += bar_speed1 # slow right 
+			self.bar_position += bar_speed1 # slow right
 		elif input[2] == 1:
 			self.bar_position += bar_speed2 # fast right
 		elif input[3] == 1:
 			self.bar_position -= bar_speed1 # slow left
 		elif input[4] == 1:
 			self.bar_position -= bar_speed2 # fast left
-		
+
 
 		# Constraint of the bar
 		if self.bar_position <= 0:
@@ -148,18 +148,18 @@ class GameState:
 		self.ball_position_y += self.ball_speed_y
 
 		# Ball is bounced when the ball hit the wall
-		if self.ball_position_x < ball_radius: 
+		if self.ball_position_x < ball_radius:
 			self.ball_speed_x = - self.ball_speed_x
 			self.ball_position_x = ball_radius
 
 		if self.ball_position_x >= WINDOW_WIDTH - ball_radius:
 			self.ball_speed_x = - self.ball_speed_x
 			self.ball_position_x = WINDOW_WIDTH - ball_radius
-		
+
 		if self.ball_position_y < INFO_GAP + ball_radius:
 			self.ball_speed_y = - self.ball_speed_y
 			self.ball_position_y = INFO_GAP + ball_radius
-		
+
 		# Ball is bounced when the ball hit the bar
 		if self.ball_position_y >= WINDOW_HEIGHT - bar_height - ball_radius:
 			# Hit the ball!
@@ -167,11 +167,15 @@ class GameState:
 				ball_hit_point = self.ball_position_x - self.bar_position
 				ball_hit_point_ratio = ball_hit_point / bar_width
 				self.ball_speed_x = (ball_hit_point_ratio * ball_bounce_speed_range) - (ball_bounce_speed_range/2)
+
+				if abs(ball_hit_point_ratio - 0.5) < 0.01:
+					self.ball_speed_x = random.uniform(-0.01 * ball_bounce_speed_range/2 , 0.01 * ball_bounce_speed_range/2)
+
 				self.ball_speed_y = - self.ball_speed_y
 				self.ball_position_y = WINDOW_HEIGHT - bar_height - ball_radius
-				reward = 0.5
-		
-		# Lose :( 
+				# reward = 0.5
+
+		# Lose :(
 		if self.ball_position_y >= WINDOW_HEIGHT:
 			self.init = True
 			reward = -1
@@ -182,14 +186,14 @@ class GameState:
 		for i in range(num_block_row):
 			for j in range(num_block_col):
 				block_left  = self.block_info[i][j][0][0]
-				block_right = self.block_info[i][j][0][0] + self.block_info[i][j][0][2] 
+				block_right = self.block_info[i][j][0][0] + self.block_info[i][j][0][2]
 				block_up    = self.block_info[i][j][0][1]
 				block_down  = self.block_info[i][j][0][1] + self.block_info[i][j][0][3]
 				visible     = self.block_info[i][j][1]
 
-				# The ball hit some block!! 
+				# The ball hit some block!!
 				if (block_left <= self.ball_position_x + ball_radius) and (self.ball_position_x - ball_radius <= block_right) and (block_up <= self.ball_position_y + ball_radius) and (self.ball_position_y - ball_radius <= block_down) and visible == 'visible':
-					# Which part of the block was hit?? 
+					# Which part of the block was hit??
 					# Upper left, Upper right, Lower right, Lower left
 					block_points = [[block_left, block_up], [block_right, block_up], [block_right, block_down], [block_left, block_down]]
 
@@ -200,7 +204,7 @@ class GameState:
 
 					# ax+by+c = 0
 					line_coeff = [slope_ball, -1, self.ball_position_y_old - (slope_ball * self.ball_position_x_old)]
-				
+
 					point1 = [block_left, (-1/line_coeff[1]) * (line_coeff[0] * block_left + line_coeff[2])]
 					point2 = [block_right, (-1/line_coeff[1]) * (line_coeff[0] * block_right + line_coeff[2])]
 					point3 = [(-1/line_coeff[0]) * (line_coeff[1] * block_up + line_coeff[2]), block_up]
@@ -223,33 +227,33 @@ class GameState:
 
 						if intersection[k][1] == block_down and (block_left <= intersection[k][0] <= block_right):
 							check_intersection[3] = 1
-					
+
 					dist_points = [np.inf, np.inf, np.inf, np.inf]
 					for k in range(len(intersection)):
 						if check_intersection[k] == 1:
 							dist = self.get_dist(intersection[k], [self.ball_position_x_old, self.ball_position_y_old])
-							dist_points[k] = dist 
-					
+							dist_points[k] = dist
+
 					# 0: Left, 1: Right, 2: Up, 3: Down
 					collision_line = np.argmin(dist_points)
 
 					if collision_line == 0 or collision_line == 1:
 						self.ball_speed_x = - self.ball_speed_x
-					
+
 					if collision_line == 2 or collision_line == 3:
 						self.ball_speed_y = - self.ball_speed_y
-					
+
 					# make hit block invisible
 					self.block_info[i][j][1] = 'invisible'
 					check_ball_hit_block = 1
 					reward = 1
 
-				# If one block is hitted, break the for loop (Preventing to break multiple blocks at once) 
+				# If one block is hitted, break the for loop (Preventing to break multiple blocks at once)
 				if check_ball_hit_block == 1:
-					break 
+					break
 			# If one block is hitted, break the for loop (Preventing to break multiple blocks at once)
 			if check_ball_hit_block == 1:
-				break				
+				break
 
 		# Fill background color
 		DISPLAYSURF.fill(BLACK)
@@ -261,12 +265,12 @@ class GameState:
 				if self.block_info[i][j][1] == 'visible':
 					pygame.draw.rect(DISPLAYSURF, block_color_list[i], self.block_info[i][j][0])
 					count_visible += 1
-		
-		# Win the game!! :) 
+
+		# Win the game!! :)
 		if count_visible == 0:
 			self.init = True
-			reward = 10	
-			terminal = True 
+			reward = 11
+			terminal = True
 
 		# Display informations
 		score_value = self.num_blocks - count_visible
@@ -282,7 +286,7 @@ class GameState:
 
 		# Draw ball
 		pygame.draw.circle(DISPLAYSURF, WHITE, (int(self.ball_position_x), int(self.ball_position_y)), ball_radius, 0)
-		
+
 		# Draw line for seperate game and info
 		pygame.draw.line(DISPLAYSURF, WHITE, (0, 40), (WINDOW_WIDTH, 40), 3)
 
@@ -295,7 +299,7 @@ class GameState:
 		pygame.quit()
 		sys.exit()
 
-	# Display score 
+	# Display score
 	def score_msg(self, score):
 		scoreSurf = BASIC_FONT.render('Score: ' + str(score), True, WHITE)
 		scoreRect = scoreSurf.get_rect()
@@ -311,6 +315,6 @@ class GameState:
 
 	def get_dist(self, point1, point2):
 		return math.sqrt(math.pow(point1[0] - point2[0],2) + math.pow(point1[1] - point2[1], 2))
-    	
+
 if __name__ == '__main__':
 	main()
