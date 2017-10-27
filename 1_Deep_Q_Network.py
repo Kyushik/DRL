@@ -52,6 +52,9 @@ second_dense = Deep_Parameters.second_dense
 if Is_train == False:
 	Num_start_training = 0
 	Num_training = 0
+	check_save = 1
+else:
+	check_save = input('Is there any saved data?(1=y/2=n): ')
 
 # Initialize weights and bias
 def weight_variable(shape):
@@ -174,8 +177,6 @@ sess.run(init)
 
 # Load the file if the saved file exists
 saver = tf.train.Saver()
-check_save = input('Is there any saved data?(1=y/2=n): ')
-
 if check_save == 1:
     checkpoint = tf.train.get_checkpoint_state("1_saved_networks_DQN")
     if checkpoint and checkpoint.model_checkpoint_path:

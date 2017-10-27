@@ -53,6 +53,9 @@ second_dense_action = [first_dense[1], Num_action]
 if Is_train == False:
 	Num_start_training = 0
 	Num_training = 0
+	check_save = 1
+else:
+	check_save = input('Is there any saved data?(1=y/2=n): ')
 
 # Parameters for PER
 eps = 0.01
@@ -213,8 +216,6 @@ sess.run(init)
 
 # Load the file if the saved file exists
 saver = tf.train.Saver()
-check_save = input('Is there any saved data?(1=y/2=n): ')
-
 if check_save == 1:
     checkpoint = tf.train.get_checkpoint_state("5_saved_netowkrs_PDD_DQN")
     if checkpoint and checkpoint.model_checkpoint_path:

@@ -42,8 +42,8 @@ Is_train = Deep_Parameters.Is_train
 # Parametwrs for Network
 img_size = Deep_Parameters.img_size
 
-step_size = 8
-lstm_size = 800
+step_size = 6
+lstm_size = 400
 flatten_size = 10*10*64
 
 first_conv   = [8,8,Num_colorChannel,32]
@@ -55,6 +55,9 @@ first_dense  = [lstm_size, Num_action]
 if Is_train == False:
 	Num_start_training = 0
 	Num_training = 0
+	check_save = 1
+else:
+	check_save = input('Is there any saved data?(1=y/2=n): ')
 
 # Initialize weights and bias
 def weight_variable(shape):
@@ -186,8 +189,6 @@ sess.run(init)
 
 # Load the file if the saved file exists
 saver = tf.train.Saver()
-check_save = input('Is there any saved data?(1=y/2=n): ')
-
 if check_save == 1:
     checkpoint = tf.train.get_checkpoint_state("6_saved_networks_DRQN")
     if checkpoint and checkpoint.model_checkpoint_path:
