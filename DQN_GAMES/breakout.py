@@ -192,7 +192,8 @@ class GameState:
 				visible     = self.block_info[i][j][1]
 
 				# The ball hit some block!!
-				if (block_left <= self.ball_position_x + ball_radius) and (self.ball_position_x - ball_radius <= block_right) and (block_up <= self.ball_position_y + ball_radius) and (self.ball_position_y - ball_radius <= block_down) and visible == 'visible':
+				# if (block_left <= self.ball_position_x + ball_radius) and (self.ball_position_x - ball_radius <= block_right) and (block_up <= self.ball_position_y + ball_radius) and (self.ball_position_y - ball_radius <= block_down) and visible == 'visible':
+				if (block_left <= self.ball_position_x) and (self.ball_position_x <= block_right) and (block_up <= self.ball_position_y) and (self.ball_position_y <= block_down) and visible == 'visible':
 					# Which part of the block was hit??
 					# Upper left, Upper right, Lower right, Lower left
 					block_points = [[block_left, block_up], [block_right, block_up], [block_right, block_down], [block_left, block_down]]
@@ -237,11 +238,44 @@ class GameState:
 					# 0: Left, 1: Right, 2: Up, 3: Down
 					collision_line = np.argmin(dist_points)
 
-					if collision_line == 0 or collision_line == 1:
+					if collision_line == 0:
 						self.ball_speed_x = - self.ball_speed_x
-
-					if collision_line == 2 or collision_line == 3:
+					elif collision_line == 1:
+						self.ball_speed_x = - self.ball_speed_x
+					elif collision_line == 2:
 						self.ball_speed_y = - self.ball_speed_y
+					elif collision_line == 3:
+						self.ball_speed_y = - self.ball_speed_y
+
+					# Incorrect breaking at corner!
+					# e.g. block was hit on the right side even though there is visible block on the right
+					# Then, the former decision was wrong, so change the direction!
+					if j > 0:
+						if collision_line == 0 and self.block_info[i][j-1][1] == 'visible':
+							self.ball_speed_x = - self.ball_speed_x
+							self.ball_speed_y = - self.ball_speed_y
+					if j < num_block_col - 1:
+						if collision_line == 1 and self.block_info[i][j+1][1] == 'visible':
+							self.ball_speed_x = - self.ball_speed_x
+							self.ball_speed_y = - self.ball_speed_y
+					if i > 0:
+						if collision_line == 2 and self.block_info[i-1][j][1] == 'visible':
+							self.ball_speed_x = - self.ball_speed_x
+							self.ball_speed_y = - self.ball_speed_y
+					if i < num_block_row - 1:
+						if collision_line == 3 and self.block_info[i+1][j][1] == 'visible':
+							self.ball_speed_x = - self.ball_speed_x
+							self.ball_speed_y = - self.ball_speed_y
+
+					# Move the ball to the block boundary after ball hit the block
+					if collision_line == 0:
+						self.ball_position_x = block_left - ball_radius
+					elif collision_line == 1:
+						self.ball_position_x = block_right + ball_radius
+					elif collision_line == 2:
+						self.ball_position_y = block_up - ball_radius
+					elif collision_line == 3:
+						self.ball_position_y = block_down + ball_radius
 
 					# make hit block invisible
 					self.block_info[i][j][1] = 'invisible'
