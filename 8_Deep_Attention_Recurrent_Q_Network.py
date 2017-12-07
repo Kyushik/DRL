@@ -25,6 +25,8 @@ Final_epsilon = Deep_Parameters.Final_epsilon
 
 Num_replay_episode = 500
 Num_start_training = Deep_Parameters.Num_start_training
+# Num_start_training = 5000
+
 Num_training = Deep_Parameters.Num_training
 Num_update = Deep_Parameters.Num_update
 Num_batch = 32
@@ -34,6 +36,7 @@ Num_stackFrame = Deep_Parameters.Num_stackFrame
 Num_colorChannel = Deep_Parameters.Num_colorChannel
 
 Num_plot_episode = Deep_Parameters.Num_plot_episode
+# Num_plot_episode = 2
 Num_step_save = Deep_Parameters.Num_step_save
 
 GPU_fraction = Deep_Parameters.GPU_fraction
@@ -43,12 +46,12 @@ Is_train = Deep_Parameters.Is_train
 img_size = Deep_Parameters.img_size
 
 step_size = 4
-lstm_size = 128
-flatten_size = 10*10*64
+lstm_size = 256
+flatten_size = 5 * 5 * 32
 
-first_conv   = [5,5,Num_colorChannel,2]
-second_conv  = [3,3,2,4]
-third_conv   = [2,2,4,4]
+first_conv   = [5,5,Num_colorChannel,8]
+second_conv  = [3,3,8,16]
+third_conv   = [2,2,16,32]
 first_dense  = [lstm_size, Num_action]
 
 # parameter for attention
@@ -123,7 +126,7 @@ def resize_input(observation):
 
 	img_fraction = np.uint8(img_fraction)
 
-	return img_fraction
+	return observation_out, img_fraction
 
 # LSTM function
 def LSTM_cell(C_prev, h_prev, x_lstm, Wf, Wi, Wc, Wo, bf, bi, bc, bo):
@@ -185,12 +188,11 @@ with tf.variable_scope('network'):
 		conv1 = tf.nn.relu(conv2d(x_conv, w_conv1, 2) + b_conv1)
 		conv2 = tf.nn.relu(conv2d(conv1, w_conv2, 2) + b_conv2)
 		conv3 = tf.nn.relu(conv2d(conv2, w_conv3, 2) + b_conv3)
-		conv_result_flat = tf.reshape(conv3,[-1, step_size , 100])
+		conv_result_flat = tf.reshape(conv3,[-1, step_size , flatten_size])
 		conv_list.append(conv_result_flat)
 
-	len_conv = 100
-	# len_conv = tf.shape(conv_list[0])[2]
-	# len_conv = int(conv_list[0].get_shape()[2])
+	# len_conv = width * height * num_conv_feature_map
+	len_conv = flatten_size
 	conv_stack = tf.stack(conv_list, axis = 3)
 	conv_unstack_step = tf.unstack(conv_stack, axis = 1)
 
@@ -243,12 +245,10 @@ with tf.variable_scope('target'):
 		conv1_target = tf.nn.relu(conv2d(x_conv_target, w_conv1_target, 2) + b_conv1_target)
 		conv2_target = tf.nn.relu(conv2d(conv1_target, w_conv2_target, 2) + b_conv2_target)
 		conv3_target = tf.nn.relu(conv2d(conv2_target, w_conv3_target, 2) + b_conv3_target)
-		conv_result_flat_target = tf.reshape(conv3_target,[-1, step_size , 100])
+		conv_result_flat_target = tf.reshape(conv3_target,[-1, step_size , flatten_size])
 		conv_list_target.append(conv_result_flat_target)
 
-	# len_conv_target = int(conv_list_target[0].get_shape()[2])
-	# len_conv_target = tf.shape(conv_list_target[0])[2]
-	len_conv_target = 100
+	len_conv_target = flatten_size
 	conv_stack_target = tf.stack(conv_list_target, axis = 3)
 	conv_unstack_step_target = tf.unstack(conv_stack_target, axis = 1)
 
@@ -286,7 +286,7 @@ y_prediction = tf.placeholder(tf.float32, shape = [None])
 
 y_target = tf.reduce_sum(tf.multiply(output, action_target), reduction_indices = 1)
 Loss = tf.reduce_mean(tf.square(y_prediction - y_target))
-train_step = tf.train.AdamOptimizer(learning_rate = Learning_rate, epsilon = 0.0001).minimize(Loss)
+train_step = tf.train.AdamOptimizer(learning_rate = Learning_rate, epsilon = 1e-2 / Num_batch).minimize(Loss)
 
 # Initialize variables
 config = tf.ConfigProto()
@@ -299,7 +299,7 @@ sess.run(init)
 # Load the file if the saved file exists
 saver = tf.train.Saver()
 if check_save == 1:
-    checkpoint = tf.train.get_checkpoint_state("6_saved_networks_DRQN")
+    checkpoint = tf.train.get_checkpoint_state("8_saved_networks_DARQN")
     if checkpoint and checkpoint.model_checkpoint_path:
         saver.restore(sess, checkpoint.model_checkpoint_path)
         print("Successfully loaded:", checkpoint.model_checkpoint_path)
@@ -321,7 +321,7 @@ observation_set = []
 game_state = game.GameState()
 action = np.zeros([Num_action])
 observation, _, _ = game_state.frame_step(action)
-observation = resize_input(observation)
+obs_original, observation = resize_input(observation)
 
 # Initialize observation set
 for i in range(step_size):
@@ -336,7 +336,13 @@ plot_y = []
 
 test_score = []
 
+plot_y_maxQ = []
+maxQ_list = []
+
 check_plot = 0
+
+f, ax = plt.subplots(2,2, sharex=False)
+
 # Training & Testing
 while True:
 	if step <= Num_start_training:
@@ -347,7 +353,7 @@ while True:
 		action[random.randint(0, Num_action - 1)] = 1.0
 
 		observation_next, reward, terminal = game_state.frame_step(action)
-		observation_next = resize_input(observation_next)
+		obs_original, observation_next = resize_input(observation_next)
 
 	elif step <= Num_start_training + Num_training:
 		# Training
@@ -363,7 +369,7 @@ while True:
 			action[np.argmax(Q_value)] = 1
 
 		observation_next, reward, terminal = game_state.frame_step(action)
-		observation_next = resize_input(observation_next)
+		obs_original, observation_next = resize_input(observation_next)
 
 		# Decrease the epsilon value
 		if Epsilon > Final_epsilon:
@@ -412,10 +418,12 @@ while True:
 
 		train_step.run(feed_dict = {action_target: action_in, y_prediction: y_batch, x_image: observation_batch})
 
-	    # save progress every 10000 iterations
-	#	if step % Num_step_save == 0:
-		#	saver.save(sess, '6_saved_networks_DRQN/' + game_name)
-	#		print('Model is saved!!!')
+		maxQ_list.append(np.max(Q_batch))
+
+	    #save progress every 10000 iterations
+		if step % Num_step_save == 0:
+			saver.save(sess, '8_saved_networks_DARQN/' + game_name)
+			print('Model is saved!!!')
 
 	elif step < Num_start_training + Num_training + Num_test:
 		# Testing
@@ -429,7 +437,7 @@ while True:
 
 		# Get game state
 		observation_next, reward, terminal = game_state.frame_step(action)
-		observation_next = resize_input(observation_next)
+		obs_original, observation_next = resize_input(observation_next)
 
 	else:
 		mean_score_test = np.average(test_score)
@@ -455,6 +463,10 @@ while True:
 	observation = observation_next
 	observation_set.append(observation)
 
+	if step % 1000 == 0:
+		obs_plot = obs_original
+		obs_set_plot = observation_set
+
 	if len(observation_set) > step_size:
 		del observation_set[0]
 
@@ -466,6 +478,8 @@ while True:
 		# Add data for plotting
 		plot_x.append(episode)
 		plot_y.append(score)
+
+		plot_y_maxQ.append(np.mean(maxQ_list))
 
 		check_plot = 1
 
@@ -486,7 +500,7 @@ while True:
 		# Initialize game state
 		action = np.zeros([Num_action])
 		observation, _, _ = game_state.frame_step(action)
-		observation = resize_input(observation)
+		_, observation = resize_input(observation)
 
 		observation_set = []
 		for i in range(step_size):
@@ -495,14 +509,54 @@ while True:
 	if episode % Num_plot_episode == 0 and episode != 0 and check_plot == 1:
 		plt.xlabel('Episode')
 		plt.ylabel('Score')
-		plt.title('Deep Recurrent Q Network')
+		plt.title('Deep Attention Recurrent Q Network')
 		plt.grid(True)
 
-		plt.plot(np.average(plot_x), np.average(plot_y), hold = True, marker = '*', ms = 5)
+		alpha_ = sess.run(alpha, feed_dict = {x_image: obs_set_plot})[0]
+		obs_original = np.reshape(obs_original, (img_size, img_size))
+		alpha_reshape = np.reshape(alpha_, (len_vertical, len_horizontal))
+
+		ax[0,0].plot(np.average(plot_x), np.average(plot_y),'*')
+		ax[0,0].set_title('Score')
+		ax[0,0].set_ylabel('Score')
+		ax[0,0].hold(True)
+
+		ax[0,1].plot(np.average(plot_x), np.average(plot_y_maxQ),'*')
+		ax[0,1].set_title('Max Q')
+		ax[0,1].set_ylabel('Max Q')
+		ax[0,1].hold(True)
+
+		ax[1,0].clear()
+		ax[1,0].imshow(obs_plot, cmap = 'gray')
+		ax[1,0].set_title('Original Image')
+		# ax[1,0].hold(True)
+
+		ax[1,1].clear()
+		ax[1,1].imshow(alpha_reshape, cmap = 'gray')
+		ax[1,1].set_title('Attention')
+		# ax[1,1].set_xlabel('Episode')
+		# ax[1,1].hold(True)
+
 		plt.draw()
 		plt.pause(0.000001)
 
 		plot_x = []
 		plot_y = []
 
+		plot_y_maxQ = []
+
 		check_plot = 0
+                #
+				# ax[0,0].plot(np.average(plot_x), np.average(plot_y_loss), '*')
+				# ax[0,0].set_title('Categorical DQN C51')
+				# ax[0,0].set_ylabel('Mean Loss')
+				# ax[0,0].hold(True)
+                #
+				# ax[1,0].plot(np.average(plot_x), np.average(plot_y),'*')
+				# ax[1,0].set_ylabel('Mean score')
+				# ax[1,0].hold(True)
+                #
+				# ax[2,0].plot(np.average(plot_x), np.average(plot_y_maxQ),'*')
+				# ax[2,0].set_ylabel('Mean Max Q')
+				# ax[2,0].set_xlabel('Episode')
+				# ax[2,0].hold(True)
