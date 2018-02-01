@@ -1,412 +1,453 @@
+# Deep Q-Network Algorithm
+
 # Import modules
-import sys
-import pygame
 import tensorflow as tf
-import cv2
+import pygame
 import random
 import numpy as np
 import matplotlib.pyplot as plt
 import datetime
 import time
+import cv2
+import os
 
-# Parameter Setting
+# Import game
+import sys
+sys.path.append("DQN_GAMES/")
+
 import Deep_Parameters
 game = Deep_Parameters.game
 
-algorithm = 'DDQN'
+class DDQN:
+	def __init__(self):
 
-Num_action = game.Return_Num_Action()
-game_name = game.ReturnName()
+		# Game Information
+		self.algorithm = 'DDQN'
+		self.game_name = game.ReturnName()
 
-Gamma = Deep_Parameters.Gamma
-Learning_rate = Deep_Parameters.Learning_rate
-Epsilon = Deep_Parameters.Epsilon
-Final_epsilon = Deep_Parameters.Final_epsilon
+		# Get parameters
+		self.progress = ''
+		self.Num_action = game.Return_Num_Action()
 
-Num_replay_memory = Deep_Parameters.Num_replay_memory
-Num_start_training = Deep_Parameters.Num_start_training
-Num_training = Deep_Parameters.Num_training
-Num_update = Deep_Parameters.Num_update
-Num_batch = Deep_Parameters.Num_batch
-Num_test = Deep_Parameters.Num_test
-Num_skipFrame = Deep_Parameters.Num_skipFrame
-Num_stackFrame = Deep_Parameters.Num_stackFrame
-Num_colorChannel = Deep_Parameters.Num_colorChannel
+		# Initial parameters
+		self.Num_Exploration = Deep_Parameters.Num_start_training
+		self.Num_Training    = Deep_Parameters.Num_training
+		self.Num_Testing     = Deep_Parameters.Num_test
 
-Num_plot_episode = Deep_Parameters.Num_plot_episode
-Num_step_save = Deep_Parameters.Num_step_save
+		self.learning_rate = Deep_Parameters.Learning_rate
+		self.gamma = Deep_Parameters.Gamma
 
-GPU_fraction = Deep_Parameters.GPU_fraction
-Is_train = Deep_Parameters.Is_train
+		self.first_epsilon = Deep_Parameters.Epsilon
+		self.final_epsilon = Deep_Parameters.Final_epsilon
 
-# Parametwrs for Network
-img_size = Deep_Parameters.img_size
+		self.epsilon = self.first_epsilon
 
-first_conv   = Deep_Parameters.first_conv
-second_conv  = Deep_Parameters.second_conv
-third_conv   = Deep_Parameters.third_conv
-first_dense  = Deep_Parameters.first_dense
-second_dense = Deep_Parameters.second_dense
+		self.Num_plot_episode = Deep_Parameters.Num_plot_episode
 
-# If is train is false then immediately start testing
-if Is_train == False:
-	Num_start_training = 0
-	Num_training = 0
-	check_save = 1
-else:
-	check_save = input('Is there any saved data?(1=y/2=n): ')
+		self.Is_train = Deep_Parameters.Is_train
+		self.load_path = Deep_Parameters.Load_path
 
-# Initialize weights and bias
-def weight_variable(shape):
-    return tf.Variable(xavier_initializer(shape))
+		self.step = 1
+		self.score = 0
+		self.episode = 0
 
-def bias_variable(shape):
-	return tf.Variable(xavier_initializer(shape))
+		# date - hour - minute of training time
+		self.date_time = str(datetime.date.today()) + '_' + \
+		                 str(datetime.datetime.now().hour) + '_' + \
+						 str(datetime.datetime.now().minute)
 
-# Xavier Weights initializer
-def xavier_initializer(shape):
-	dim_sum = np.sum(shape)
-	if len(shape) == 1:
-		dim_sum += 1
-	bound = np.sqrt(2.0 / dim_sum)
-	return tf.random_uniform(shape, minval=-bound, maxval=bound)
+		# parameters for skipping and stacking
+		self.state_set = []
+		self.Num_skipping = Deep_Parameters.Num_skipFrame
+		self.Num_stacking = Deep_Parameters.Num_stackFrame
 
-# Convolution and pooling
-def conv2d(x,w, stride):
-	return tf.nn.conv2d(x,w,strides=[1, stride, stride, 1], padding='SAME')
+		# Parameter for Experience Replay
+		self.Num_replay_memory = Deep_Parameters.Num_replay_memory
+		self.Num_batch = Deep_Parameters.Num_batch
+		self.replay_memory = []
 
-def max_pool_2x2(x):
-	return tf.nn.max_pool(x, ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
+		# Parameter for Target Network
+		self.Num_update_target = Deep_Parameters.Num_update
 
-def assign_network_to_target():
-    	# Get trainable variables
-	trainable_variables = tf.trainable_variables()
-	# network lstm variables
-	trainable_variables_network = [var for var in trainable_variables if var.name.startswith('network')]
+		# Parameters for network
+		self.img_size = 80
+		self.Num_colorChannel = Deep_Parameters.Num_colorChannel
 
-	# target lstm variables
-	trainable_variables_target = [var for var in trainable_variables if var.name.startswith('target')]
+		self.first_conv   = Deep_Parameters.first_conv
+		self.second_conv  = Deep_Parameters.second_conv
+		self.third_conv   = Deep_Parameters.third_conv
+		self.first_dense  = Deep_Parameters.first_dense
+		self.second_dense = Deep_Parameters.second_dense
 
-	for i in range(len(trainable_variables_network)):
-		sess.run(tf.assign(trainable_variables_target[i], trainable_variables_network[i]))
+		self.GPU_fraction = Deep_Parameters.GPU_fraction
 
-def resize_input(observation):
-	observation_out = cv2.resize(observation, (img_size, img_size))
-	if Num_colorChannel == 1:
-		observation_out = cv2.cvtColor(observation_out, cv2.COLOR_BGR2GRAY)
-		observation_out = np.reshape(observation_out, (img_size, img_size))
+		# Variables for tensorboard
+		self.loss = 0
+		self.maxQ = 0
+		self.score_board = 0
+		self.maxQ_board  = 0
+		self.loss_board  = 0
+		self.step_old    = 0
 
-	observation_out = np.uint8(observation_out)
-	return observation_out
+		# Initialize Network
+		self.input, self.output = self.network('network')
+		self.input_target, self.output_target = self.network('target')
+		self.train_step, self.action_target, self.y_target, self.loss_train = self.loss_and_train()
+		self.sess, self.saver, self.summary_placeholders, self.update_ops, self.summary_op, self.summary_writer = self.init_sess()
 
-# Input
-x_image = tf.placeholder(tf.float32, shape = [None, img_size, img_size, Num_colorChannel * Num_stackFrame])
-x_normalize = (x_image - (255.0/2)) / (255.0/2)
+	def main(self):
+		# Define game state
+		game_state = game.GameState()
 
-with tf.variable_scope('network'):
-	# Convolution variables
-	w_conv1 = weight_variable(first_conv)
-	b_conv1 = bias_variable([first_conv[3]])
+		# Initialization
+		state = self.initialization(game_state)
+		stacked_state = self.skip_and_stack_frame(state)
 
-	w_conv2 = weight_variable(second_conv)
-	b_conv2 = bias_variable([second_conv[3]])
+		while True:
+			# Get progress:
+			self.progress = self.get_progress()
 
-	w_conv3 = weight_variable(third_conv)
-	b_conv3 = bias_variable([third_conv[3]])
+			# Select action
+			action = self.select_action(stacked_state)
 
-	# Densely connect layer variables
-	w_fc1 = weight_variable(first_dense)
-	b_fc1 = bias_variable([first_dense[1]])
+			# Take action and get info. for update
+			next_state, reward, terminal = game_state.frame_step(action)
+			next_state = self.reshape_input(next_state)
+			stacked_next_state = self.skip_and_stack_frame(next_state)
 
-	w_fc2 = weight_variable(second_dense)
-	b_fc2 = bias_variable([second_dense[1]])
+			# Experience Replay
+			self.experience_replay(stacked_state, action, reward, stacked_next_state, terminal)
 
-# Network
-h_conv1 = tf.nn.relu(conv2d(x_normalize, w_conv1, 4) + b_conv1)
-h_conv2 = tf.nn.relu(conv2d(h_conv1, w_conv2, 2) + b_conv2)
-h_conv3 = tf.nn.relu(conv2d(h_conv2, w_conv3, 1) + b_conv3)
+			# Training!
+			if self.progress == 'Training':
+				# Update target network
+				if self.step % self.Num_update_target == 0:
+					self.update_target()
 
-h_pool3_flat = tf.reshape(h_conv3, [-1, first_dense[0]])
-h_fc1 = tf.nn.relu(tf.matmul(h_pool3_flat, w_fc1)+b_fc1)
+				# Training
+				self.train(self.replay_memory)
 
-output = tf.matmul(h_fc1, w_fc2) + b_fc2
+				# Save model
+				self.save_model()
 
-with tf.variable_scope('target'):
-	# Convolution variables target
-	w_conv1_target = weight_variable(first_conv)
-	b_conv1_target = bias_variable([first_conv[3]])
+			# Update former info.
+			stacked_state = stacked_next_state
+			self.score += reward
+			self.step += 1
 
-	w_conv2_target = weight_variable(second_conv)
-	b_conv2_target = bias_variable([second_conv[3]])
+			# Plotting
+			self.plotting(terminal)
 
-	w_conv3_target = weight_variable(third_conv)
-	b_conv3_target = bias_variable([third_conv[3]])
+			# If game is over (terminal)
+			if terminal:
+				stacked_state = self.if_terminal(game_state)
 
-	# Densely connect layer variables target
-	w_fc1_target = weight_variable(first_dense)
-	b_fc1_target = bias_variable([first_dense[1]])
+			# Finished!
+			if self.progress == 'Finished':
+				print('Finished!')
+				break
 
-	w_fc2_target = weight_variable(second_dense)
-	b_fc2_target = bias_variable([second_dense[1]])
+	def init_sess(self):
+		# Initialize variables
+		config = tf.ConfigProto()
+		config.gpu_options.per_process_gpu_memory_fraction = self.GPU_fraction
 
-# Target Network
-h_conv1_target = tf.nn.relu(conv2d(x_normalize, w_conv1_target, 4) + b_conv1_target)
-h_conv2_target = tf.nn.relu(conv2d(h_conv1_target, w_conv2_target, 2) + b_conv2_target)
-h_conv3_target = tf.nn.relu(conv2d(h_conv2_target, w_conv3_target, 1) + b_conv3_target)
+		sess = tf.InteractiveSession(config=config)
 
-h_pool3_flat_target = tf.reshape(h_conv3_target, [-1, first_dense[0]])
-h_fc1_target = tf.nn.relu(tf.matmul(h_pool3_flat_target, w_fc1_target)+b_fc1_target)
+		# Make folder for save data
+		os.makedirs('saved_networks/' + self.game_name + '/' + self.date_time + '_' + self.algorithm)
 
-output_target = tf.matmul(h_fc1_target, w_fc2_target) + b_fc2_target
+		# Summary for tensorboard
+		summary_placeholders, update_ops, summary_op = self.setup_summary()
+		summary_writer = tf.summary.FileWriter('saved_networks/' + self.game_name + '/' + self.date_time + '_' + self.algorithm, sess.graph)
 
-# Loss function and Train
-action_target = tf.placeholder(tf.float32, shape = [None, Num_action])
-y_prediction = tf.placeholder(tf.float32, shape = [None])
+		init = tf.global_variables_initializer()
+		sess.run(init)
 
-y_target = tf.reduce_sum(tf.multiply(output, action_target), reduction_indices = 1)
-Loss = tf.reduce_mean(tf.square(y_prediction - y_target))
-train_step = tf.train.AdamOptimizer(learning_rate = Learning_rate, epsilon = 1e-02).minimize(Loss)
+		# Load the file if the saved file exists
+		saver = tf.train.Saver()
+		# check_save = 1
+		check_save = input('Load Model? (1=yes/2=no): ')
 
-# Initialize variables
-config = tf.ConfigProto()
-config.gpu_options.per_process_gpu_memory_fraction = GPU_fraction
+		if check_save == 1:
+			# Restore variables from disk.
+			saver.restore(sess, self.load_path + "/model.ckpt")
+			print("Model restored.")
 
-sess = tf.InteractiveSession(config=config)
-init = tf.global_variables_initializer()
-sess.run(init)
+			check_train = input('Inference or Training? (1=Inference / 2=Training): ')
+			if check_train == 1:
+				self.Num_Exploration = 0
+				self.Num_Training = 0
 
-# Load the file if the saved file exists
-saver = tf.train.Saver()
-if check_save == 1:
-    checkpoint = tf.train.get_checkpoint_state("2_saved_networks_DDQN")
-    if checkpoint and checkpoint.model_checkpoint_path:
-        saver.restore(sess, checkpoint.model_checkpoint_path)
-        print("Successfully loaded:", checkpoint.model_checkpoint_path)
-    else:
-        print("Could not find old network weights")
+		return sess, saver, summary_placeholders, update_ops, summary_op, summary_writer
 
-# Initial parameters
-Replay_memory = []
-step = 1
-score = 0
-episode = 0
+	def initialization(self, game_state):
+		action = np.zeros([self.Num_action])
+		state, _, _ = game_state.frame_step(action)
+		state = self.reshape_input(state)
 
-# date - hour - minute of training time
-date_time = str(datetime.date.today()) + '_' + str(datetime.datetime.now().hour) + '_' + str(datetime.datetime.now().minute)
+		for i in range(self.Num_skipping * self.Num_stacking):
+			self.state_set.append(state)
 
-# Get initial game information
-game_state = game.GameState()
-action = np.zeros([Num_action])
-observation, _, _ = game_state.frame_step(action)
-observation = resize_input(observation)
+		return state
 
-# Initialize input data
-observation_in = np.zeros([img_size, img_size, Num_colorChannel * Num_stackFrame])
-observation_next_in = np.zeros([img_size, img_size, Num_colorChannel * Num_stackFrame])
+	def skip_and_stack_frame(self, state):
+		self.state_set.append(state)
 
-observation_set = []
-
-start_time = time.time()
-
-for i in range(Num_skipFrame * Num_stackFrame):
-	observation_set.append(observation)
-
-# Figure and figure data setting
-plt.figure(1)
-plot_x = []
-plot_y = []
-
-test_score = []
-
-check_plot = 0
-
-# Training & Testing
-while True:
-	if step <= Num_start_training:
-		# Observation
-		progress = 'Observing'
-
-		action = np.zeros([Num_action])
-		action[random.randint(0, Num_action - 1)] = 1.0
-
-		observation_next, reward, terminal = game_state.frame_step(action)
-		observation_next = resize_input(observation_next)
-
-		observation_set.append(observation_next)
-
-		observation_next_in = np.zeros((img_size, img_size, Num_colorChannel * Num_stackFrame))
+		state_in = np.zeros((self.img_size, self.img_size, self.Num_colorChannel * self.Num_stacking))
 
 		# Stack the frame according to the number of skipping frame
-		for stack_frame in range(Num_stackFrame):
-			observation_next_in[:,:,stack_frame] = observation_set[-1 - (Num_skipFrame * stack_frame)]
+		for stack_frame in range(self.Num_stacking):
+			state_in[:,:,stack_frame] = self.state_set[-1 - (self.Num_skipping * stack_frame)]
 
-		del observation_set[0]
+		del self.state_set[0]
 
-		observation_next_in = np.uint8(observation_next_in)
+		state_in = np.uint8(state_in)
+		return state_in
 
-	elif step <= Num_start_training + Num_training:
-		# Training
-		progress = 'Training'
-
-		# if random value(0 - 1) is smaller than Epsilon, action is random. Otherwise, action is the one which has the largest Q value
-		if random.random() < Epsilon:
-			action = np.zeros([Num_action])
-			action[random.randint(0, Num_action - 1)] = 1
+	def get_progress(self):
+		progress = ''
+		if self.step <= self.Num_Exploration:
+			progress = 'Exploring'
+		elif self.step <= self.Num_Exploration + self.Num_Training:
+			progress = 'Training'
+		elif self.step <= self.Num_Exploration + self.Num_Training + self.Num_Testing:
+			progress = 'Testing'
 		else:
-			Q_value = output.eval(feed_dict={x_image: [observation_in]})
-			action = np.zeros([Num_action])
-			action[np.argmax(Q_value)] = 1
+			progress = 'Finished'
 
-		observation_next, reward, terminal = game_state.frame_step(action)
-		observation_next = resize_input(observation_next)
+		return progress
 
-		observation_set.append(observation_next)
+	# Resize and make input as grayscale
+	def reshape_input(self, state):
+		state_out = cv2.resize(state, (self.img_size, self.img_size))
+		if self.Num_colorChannel == 1:
+			state_out = cv2.cvtColor(state_out, cv2.COLOR_BGR2GRAY)
+			state_out = np.reshape(state_out, (self.img_size, self.img_size))
 
-		observation_next_in = np.zeros((img_size, img_size, Num_colorChannel * Num_stackFrame))
+		state_out = np.uint8(state_out)
 
-		# Stack the frame according to the number of skipping frame
-		for stack_frame in range(Num_stackFrame):
-			observation_next_in[:,:,stack_frame] = observation_set[-1 - (Num_skipFrame * stack_frame)]
+		return state_out
 
-		del observation_set[0]
+	# Code for tensorboard
+	def setup_summary(self):
+	    episode_score = tf.Variable(0.)
+	    episode_maxQ = tf.Variable(0.)
+	    episode_loss = tf.Variable(0.)
 
-		observation_next_in = np.uint8(observation_next_in)
+	    tf.summary.scalar('Average Score/' + str(self.Num_plot_episode) + ' episodes', episode_score)
+	    tf.summary.scalar('Average MaxQ/' + str(self.Num_plot_episode) + ' episodes', episode_maxQ)
+	    tf.summary.scalar('Average Loss/' + str(self.Num_plot_episode) + ' episodes', episode_loss)
 
-		# Decrease the epsilon value
-		if Epsilon > Final_epsilon:
-			Epsilon -= 1.0/Num_training
+	    summary_vars = [episode_score, episode_maxQ, episode_loss]
 
+	    summary_placeholders = [tf.placeholder(tf.float32) for _ in range(len(summary_vars))]
+	    update_ops = [summary_vars[i].assign(summary_placeholders[i]) for i in range(len(summary_vars))]
+	    summary_op = tf.summary.merge_all()
+	    return summary_placeholders, update_ops, summary_op
+
+	# Convolution and pooling
+	def conv2d(self, x, w, stride):
+		return tf.nn.conv2d(x,w,strides=[1, stride, stride, 1], padding='SAME')
+
+	# Get Variables
+	def conv_weight_variable(self, name, shape):
+	    return tf.get_variable(name, shape = shape, initializer = tf.contrib.layers.xavier_initializer_conv2d())
+
+	def weight_variable(self, name, shape):
+	    return tf.get_variable(name, shape = shape, initializer = tf.contrib.layers.xavier_initializer())
+
+	def bias_variable(self, name, shape):
+	    return tf.get_variable(name, shape = shape, initializer = tf.contrib.layers.xavier_initializer())
+
+	def network(self, network_name):
+		# Input
+		x_image = tf.placeholder(tf.float32, shape = [None,
+													  self.img_size,
+													  self.img_size,
+													  self.Num_stacking * self.Num_colorChannel])
+
+		x_normalize = (x_image - (255.0/2)) / (255.0/2)
+
+		with tf.variable_scope(network_name):
+			# Convolution variables
+			w_conv1 = self.conv_weight_variable('w_conv1' + network_name, self.first_conv)
+			b_conv1 = self.bias_variable('b_conv1' + network_name,[self.first_conv[3]])
+
+			w_conv2 = self.conv_weight_variable('w_conv2' + network_name,self.second_conv)
+			b_conv2 = self.bias_variable('b_conv2' + network_name,[self.second_conv[3]])
+
+			w_conv3 = self.conv_weight_variable('w_conv3' + network_name,self.third_conv)
+			b_conv3 = self.bias_variable('b_conv3' + network_name,[self.third_conv[3]])
+
+			# Densely connect layer variables
+			w_fc1 = self.weight_variable('w_fc1' + network_name,self.first_dense)
+			b_fc1 = self.bias_variable('b_fc1' + network_name,[self.first_dense[1]])
+
+			w_fc2 = self.weight_variable('w_fc2' + network_name,self.second_dense)
+			b_fc2 = self.bias_variable('b_fc2' + network_name,[self.second_dense[1]])
+
+		# Network
+		h_conv1 = tf.nn.relu(self.conv2d(x_normalize, w_conv1, 4) + b_conv1)
+		h_conv2 = tf.nn.relu(self.conv2d(h_conv1, w_conv2, 2) + b_conv2)
+		h_conv3 = tf.nn.relu(self.conv2d(h_conv2, w_conv3, 1) + b_conv3)
+
+		h_pool3_flat = tf.reshape(h_conv3, [-1, self.first_dense[0]])
+		h_fc1 = tf.nn.relu(tf.matmul(h_pool3_flat, w_fc1)+b_fc1)
+
+		output = tf.matmul(h_fc1, w_fc2) + b_fc2
+		return x_image, output
+
+	def loss_and_train(self):
+		# Loss function and Train
+		action_target = tf.placeholder(tf.float32, shape = [None, self.Num_action])
+		y_target = tf.placeholder(tf.float32, shape = [None])
+
+		y_predictiony_target = tf.reduce_sum(tf.multiply(self.output, action_target), reduction_indices = 1)
+		Loss = tf.reduce_mean(tf.square(y_prediction - y_target))
+		train_step = tf.train.AdamOptimizer(learning_rate = self.learning_rate, epsilon = 1e-02).minimize(Loss)
+
+		return train_step, action_target, y_target, Loss
+
+	def select_action(self, stacked_state):
+		action = np.zeros([self.Num_action])
+		action_index = 0
+
+		# Choose action
+		if self.progress == 'Exploring':
+			# Choose random action
+			action_index = random.randint(0, self.Num_action-1)
+			action[action_index] = 1
+
+		elif self.progress == 'Training':
+			if random.random() < self.epsilon:
+				# Choose random action
+				action_index = random.randint(0, self.Num_action-1)
+				action[action_index] = 1
+			else:
+				# Choose greedy action
+				Q_value = self.output.eval(feed_dict={self.input: [stacked_state]})
+				action_index = np.argmax(Q_value)
+				action[action_index] = 1
+				self.maxQ = np.max(Q_value)
+
+			# Decrease epsilon while training
+			if self.epsilon > self.final_epsilon:
+				self.epsilon -= self.first_epsilon/self.Num_Training
+
+		elif self.progress == 'Testing':
+			# Choose greedy action
+			Q_value = self.output.eval(feed_dict={self.input: [stacked_state]})
+			action_index = np.argmax(Q_value)
+			action[action_index] = 1
+			self.maxQ = np.max(Q_value)
+
+			self.epsilon = 0
+
+		return action
+
+	def experience_replay(self, state, action, reward, next_state, terminal):
+		# If Replay memory is longer than Num_replay_memory, delete the oldest one
+		if len(self.replay_memory) > self.Num_replay_memory:
+			del self.replay_memory[0]
+		else:
+			self.replay_memory.append([state, action, reward, next_state, terminal])
+
+	def update_target(self):
+		# Get trainable variables
+		trainable_variables = tf.trainable_variables()
+		# network variables
+		trainable_variables_network = [var for var in trainable_variables if var.name.startswith('network')]
+
+		# target variables
+		trainable_variables_target = [var for var in trainable_variables if var.name.startswith('target')]
+
+		for i in range(len(trainable_variables_network)):
+			self.sess.run(tf.assign(trainable_variables_target[i], trainable_variables_network[i]))
+
+	def train(self, replay_memory):
 		# Select minibatch
-		minibatch =  random.sample(Replay_memory, Num_batch)
+		minibatch =  random.sample(replay_memory, self.Num_batch)
 
 		# Save the each batch data
-		observation_batch      = [batch[0] for batch in minibatch]
-		action_batch           = [batch[1] for batch in minibatch]
-		reward_batch           = [batch[2] for batch in minibatch]
-		observation_next_batch = [batch[3] for batch in minibatch]
-		terminal_batch 	       = [batch[4] for batch in minibatch]
+		state_batch      = [batch[0] for batch in minibatch]
+		action_batch     = [batch[1] for batch in minibatch]
+		reward_batch     = [batch[2] for batch in minibatch]
+		next_state_batch = [batch[3] for batch in minibatch]
+		terminal_batch   = [batch[4] for batch in minibatch]
 
-		# Update target network according to the Num_update value
-		if step % Num_update == 0:
-			assign_network_to_target()
-
-        # Get Target value
 		####################################### Double Q Learning part #######################################
+		# Get target values
 		y_batch = []
-		# Get Q value for selecting actions
-		Q_list = output.eval(feed_dict = {x_image: observation_next_batch})
+		# Selecting actions
+		Q_network = self.output.eval(feed_dict = {self.input: next_state_batch})
+
 		a_max = []
-		for i in range(Q_list.shape[0]):
-			a_max.append(np.argmax(Q_list[i]))
+		for i in range(Q_network.shape[0]):
+		    a_max.append(np.argmax(Q_network[i]))
 
-		# Get Q vlaue for evaluation
-		Q_batch = output_target.eval(feed_dict = {x_image: observation_next_batch})
-
+		# Evaluation
+		Q_target = self.output_target.eval(feed_dict = {self.input_target: next_state_batch})
 		for i in range(len(minibatch)):
-			if terminal_batch[i] == True:
-				y_batch.append(reward_batch[i])
-			else:
-				y_batch.append(reward_batch[i] + Gamma * Q_batch[i, a_max[i]])
+		    if terminal_batch[i] == True:
+		        y_batch.append(reward_batch[i])
+		    else:
+		        y_batch.append(reward_batch[i] + self.gamma * Q_target[i, a_max[i]])
 
-		######################################################################################################
+		_, self.loss = self.sess.run([self.train_step, self.loss_train], feed_dict = {self.action_target: action_batch,
+										 										      self.y_target: y_batch,
+										 									  	      self.input: state_batch})
+        ######################################################################################################
+	def save_model(self):
+		# Save the variables to disk.
+		if self.step == self.Num_Exploration + self.Num_Training:
+		    save_path = self.saver.save(self.sess, 'saved_networks/' + self.game_name + '/' + self.date_time + '_' + self.algorithm + "/model.ckpt")
+		    print("Model saved in file: %s" % save_path)
 
-		train_step.run(feed_dict = {action_target: action_batch, y_prediction: y_batch, x_image: observation_batch})
+	def plotting(self, terminal):
+		if self.progress != 'Exploring':
+			if terminal:
+				self.score_board += self.score
 
-	    # save progress every 10000 iterations
-		if step % Num_step_save == 0:
-			saver.save(sess, '2_saved_networks_DDQN/' + game_name)
-			print('Model is saved!!!')
+			self.maxQ_board  += self.maxQ
+			self.loss_board  += self.loss
 
-	elif step < Num_start_training + Num_training + Num_test:
-		# Testing
-		progress = 'Testing'
-		Epsilon = 0
+			if self.episode % self.Num_plot_episode == 0 and self.episode != 0 and terminal:
+				diff_step = self.step - self.step_old
+				tensorboard_info = [self.score_board / self.Num_plot_episode, self.maxQ_board / diff_step, self.loss_board / diff_step]
 
-		# Choose the action of testing state
-		Q_value = output.eval(feed_dict={x_image: [observation_in]})
-		action = np.zeros([Num_action])
-		action[np.argmax(Q_value)] = 1
+				for i in range(len(tensorboard_info)):
+				    self.sess.run(self.update_ops[i], feed_dict = {self.summary_placeholders[i]: float(tensorboard_info[i])})
+				summary_str = self.sess.run(self.summary_op)
+				self.summary_writer.add_summary(summary_str, self.step)
 
-		# Get game state
-		observation_next, reward, terminal = game_state.frame_step(action)
-		observation_next = resize_input(observation_next)
+				self.score_board = 0
+				self.maxQ_board  = 0
+				self.loss_board  = 0
+				self.step_old = self.step
+		else:
+			self.step_old = self.step
 
-		observation_set.append(observation_next)
 
-		observation_next_in = np.zeros((img_size, img_size, Num_colorChannel * Num_stackFrame))
 
-		# Stack the frame according to the number of skipping frame
-		for stack_frame in range(Num_stackFrame):
-			observation_next_in[:,:,stack_frame] = observation_set[-1 - (Num_skipFrame * stack_frame)]
+	def if_terminal(self, game_state):
+		# Show Progress
+		print('Step: ' + str(self.step) + ' / ' +
+		      'Episode: ' + str(self.episode) + ' / ' +
+			  'Progress: ' + self.progress + ' / ' +
+			  'Epsilon: ' + str(self.epsilon) + ' / ' +
+			  'Score: ' + str(self.score))
 
-		del observation_set[0]
+		if self.progress != 'Exploring':
+			self.episode += 1
+		self.score = 0
 
-		observation_next_in = np.uint8(observation_next_in)
+		# If game is finished, initialize the state
+		state = self.initialization(game_state)
+		stacked_state = self.skip_and_stack_frame(state)
 
-	else:
-		mean_score_test = np.average(test_score)
-		print(game_name + str(mean_score_test))
-		plt.savefig('./Plot/' + date_time + '_' + algorithm + '_' + game_name + str(mean_score_test) + '.png')
+		return stacked_state
 
-		# Finish the Code
-		print('It takes ' + str(time.time() - start_time) + ' seconds to finish this algorithm!')
-		break
-
-	# If length of replay memeory is more than the setting value then remove the first one
-	if len(Replay_memory) > Num_replay_memory:
-		del Replay_memory[0]
-
-	# Save experience to the Replay memory
-	if progress != 'Testing':
-		Replay_memory.append([observation_in, action, reward, observation_next_in, terminal])
-
-	step += 1
-	score += reward
-
-	observation_in = observation_next_in
-
-	# If terminal is True
-	if terminal == True:
-		# Print informations
-		print('step: ' + str(step) + ' / '  + 'episode: ' + str(episode) + ' / ' + 'progress: ' + progress  + ' / '  + 'epsilon: ' + str(Epsilon) + ' / '  + 'score: ' + str(score))
-
-		# Add data for plotting
-		plot_x.append(episode)
-		plot_y.append(score)
-
-		check_plot = 1
-
-		# If progress is testing then add score for calculating test score
-		if progress == 'Testing':
-			test_score.append(score)
-
-		# Initialize score and add 1 to episode number
-		score = 0
-
-		if progress != 'Observing':
-			episode += 1
-
-		# Initialize game state
-		action = np.zeros([Num_action])
-		observation, _, _ = game_state.frame_step(action)
-		observation = resize_input(observation)
-
-		observation_set = []
-
-		for i in range(Num_skipFrame * Num_stackFrame):
-				observation_set.append(observation)
-
-	if episode % Num_plot_episode == 0 and episode != 0 and check_plot == 1:
-		plt.xlabel('Episode')
-		plt.ylabel('Score')
-		plt.title('Double Deep Q Network')
-		plt.grid(True)
-
-		plt.plot(np.average(plot_x), np.average(plot_y), hold = True, marker = '*', ms = 5)
-		plt.draw()
-		plt.pause(0.000001)
-
-		plot_x = []
-		plot_y = []
-
-		check_plot = 0
+if __name__ == '__main__':
+	agent = DDQN()
+	agent.main()

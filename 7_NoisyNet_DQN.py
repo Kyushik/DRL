@@ -18,11 +18,11 @@ sys.path.append("DQN_GAMES/")
 import Deep_Parameters
 game = Deep_Parameters.game
 
-class Dueling_DQN:
+class NoisyNet_DQN:
 	def __init__(self):
 
 		# Game Information
-		self.algorithm = 'Dueling_DQN'
+		self.algorithm = 'NoisyNet_DQN'
 		self.game_name = game.ReturnName()
 
 		# Get parameters
@@ -36,11 +36,6 @@ class Dueling_DQN:
 
 		self.learning_rate = Deep_Parameters.Learning_rate
 		self.gamma = Deep_Parameters.Gamma
-
-		self.first_epsilon = Deep_Parameters.Epsilon
-		self.final_epsilon = Deep_Parameters.Final_epsilon
-
-		self.epsilon = self.first_epsilon
 
 		self.Num_plot_episode = Deep_Parameters.Num_plot_episode
 
@@ -77,8 +72,7 @@ class Dueling_DQN:
 		self.second_conv  = Deep_Parameters.second_conv
 		self.third_conv   = Deep_Parameters.third_conv
 		self.first_dense  = Deep_Parameters.first_dense
-		self.second_dense_state  = [self.first_dense[1], 1]
-		self.second_dense_action = [self.first_dense[1], self.Num_action]
+		self.second_dense = Deep_Parameters.second_dense
 
 		self.GPU_fraction = Deep_Parameters.GPU_fraction
 
@@ -91,8 +85,8 @@ class Dueling_DQN:
 		self.step_old    = 0
 
 		# Initialize Network
-		self.input, self.output = self.network('network')
-		self.input_target, self.output_target = self.network('target')
+		self.input, self.output, self.train_process = self.network('network')
+		self.input_target, self.output_target, self.train_process_target = self.network('target')
 		self.train_step, self.action_target, self.y_target, self.loss_train = self.loss_and_train()
 		self.sess, self.saver, self.summary_placeholders, self.update_ops, self.summary_op, self.summary_writer = self.init_sess()
 
@@ -255,11 +249,25 @@ class Dueling_DQN:
 	def conv_weight_variable(self, name, shape):
 	    return tf.get_variable(name, shape = shape, initializer = tf.contrib.layers.xavier_initializer_conv2d())
 
-	def weight_variable(self, name, shape):
-	    return tf.get_variable(name, shape = shape, initializer = tf.contrib.layers.xavier_initializer())
-
 	def bias_variable(self, name, shape):
 	    return tf.get_variable(name, shape = shape, initializer = tf.contrib.layers.xavier_initializer())
+
+	def mu_variable(self, shape):
+	    return tf.Variable(tf.random_uniform(shape, minval = -tf.sqrt(3/shape[0]), maxval = tf.sqrt(3/shape[0])))
+
+	def sigma_variable(self, shape):
+		return tf.Variable(tf.constant(0.017, shape = shape))
+
+	########################################### Noisy Network ###########################################
+	def noisy_dense(self, input_, input_shape, mu_w, sig_w, mu_b, sig_b, is_train_process):
+		eps_w = tf.cond(is_train_process, lambda: tf.random_normal(input_shape), lambda: tf.zeros(input_shape))
+		eps_b = tf.cond(is_train_process, lambda: tf.random_normal([input_shape[1]]), lambda: tf.zeros([input_shape[1]]))
+
+		w_fc = tf.add(mu_w, tf.multiply(sig_w, eps_w))
+		b_fc = tf.add(mu_b, tf.multiply(sig_b, eps_b))
+
+		return tf.matmul(input_, w_fc) + b_fc
+	#####################################################################################################
 
 	def network(self, network_name):
 		# Input
@@ -269,6 +277,10 @@ class Dueling_DQN:
 													  self.Num_stacking * self.Num_colorChannel])
 
 		x_normalize = (x_image - (255.0/2)) / (255.0/2)
+
+		########################################### Noisy Network ###########################################
+		train_process = tf.placeholder(tf.bool)
+		#####################################################################################################
 
 		with tf.variable_scope(network_name):
 			# Convolution variables
@@ -281,18 +293,18 @@ class Dueling_DQN:
 			w_conv3 = self.conv_weight_variable('w_conv3' + network_name,self.third_conv)
 			b_conv3 = self.bias_variable('b_conv3' + network_name,[self.third_conv[3]])
 
-			# Densely connect layer variables
-			w_fc1_1 = self.weight_variable('w_fc1_1' + network_name,self.first_dense)
-			b_fc1_1 = self.bias_variable('b_fc1_1' + network_name,[self.first_dense[1]])
+			########################################### Noisy Network ###########################################
+			# Densely connect layer variables (Noisy)
+			mu_w1  = self.mu_variable(self.first_dense)
+			sig_w1 = self.sigma_variable(self.first_dense)
+			mu_b1  = self.mu_variable([self.first_dense[1]])
+			sig_b1 = self.sigma_variable([self.first_dense[1]])
 
-			w_fc1_2 = self.weight_variable('w_fc1_2' + network_name,self.first_dense)
-			b_fc1_2 = self.bias_variable('b_fc1_2' + network_name,[self.first_dense[1]])
-
-			w_fc2_1 = self.weight_variable('w_fc2_1' + network_name,self.second_dense_state)
-			b_fc2_1 = self.bias_variable('b_fc2_1' + network_name,[self.second_dense_state[1]])
-
-			w_fc2_2 = self.weight_variable('w_fc2_2' + network_name,self.second_dense_action)
-			b_fc2_2 = self.bias_variable('b_fc2_2' + network_name,[self.second_dense_action[1]])
+			mu_w2  = self.mu_variable(self.second_dense)
+			sig_w2 = self.sigma_variable(self.second_dense)
+			mu_b2  = self.mu_variable([self.second_dense[1]])
+			sig_b2 = self.sigma_variable([self.second_dense[1]])
+			#####################################################################################################
 
 		# Network
 		h_conv1 = tf.nn.relu(self.conv2d(x_normalize, w_conv1, 4) + b_conv1)
@@ -300,17 +312,13 @@ class Dueling_DQN:
 		h_conv3 = tf.nn.relu(self.conv2d(h_conv2, w_conv3, 1) + b_conv3)
 
 		h_pool3_flat = tf.reshape(h_conv3, [-1, self.first_dense[0]])
-		h_fc1_state  = tf.nn.relu(tf.matmul(h_pool3_flat, w_fc1_1)+b_fc1_1)
-		h_fc1_action = tf.nn.relu(tf.matmul(h_pool3_flat, w_fc1_2)+b_fc1_2)
 
-		h_fc2_state  = tf.matmul(h_fc1_state,  w_fc2_1)+b_fc2_1
-		h_fc2_action = tf.matmul(h_fc1_action, w_fc2_2)+b_fc2_2
+		########################################### Noisy Network ###########################################
+		h_fc1 = tf.nn.relu(self.noisy_dense(h_pool3_flat, self.first_dense, mu_w1, sig_w1, mu_b1, sig_b1, train_process))
+		output = self.noisy_dense(h_fc1, self.second_dense, mu_w2, sig_w2, mu_b2, sig_b2, train_process)
+		#####################################################################################################
 
-		h_fc2_advantage = tf.subtract(h_fc2_action, tf.reduce_mean(h_fc2_action))
-
-		output = tf.add(h_fc2_state, h_fc2_advantage)
-
-		return x_image, output
+		return x_image, output, train_process
 
 	def loss_and_train(self):
 		# Loss function and Train
@@ -334,29 +342,18 @@ class Dueling_DQN:
 			action[action_index] = 1
 
 		elif self.progress == 'Training':
-			if random.random() < self.epsilon:
-				# Choose random action
-				action_index = random.randint(0, self.Num_action-1)
-				action[action_index] = 1
-			else:
-				# Choose greedy action
-				Q_value = self.output.eval(feed_dict={self.input: [stacked_state]})
-				action_index = np.argmax(Q_value)
-				action[action_index] = 1
-				self.maxQ = np.max(Q_value)
-
-			# Decrease epsilon while training
-			if self.epsilon > self.final_epsilon:
-				self.epsilon -= self.first_epsilon/self.Num_Training
-
-		elif self.progress == 'Testing':
 			# Choose greedy action
-			Q_value = self.output.eval(feed_dict={self.input: [stacked_state]})
+			Q_value = self.output.eval(feed_dict={self.input: [stacked_state], self.train_process: True})
 			action_index = np.argmax(Q_value)
 			action[action_index] = 1
 			self.maxQ = np.max(Q_value)
 
-			self.epsilon = 0
+		elif self.progress == 'Testing':
+			# Choose greedy action
+			Q_value = self.output.eval(feed_dict={self.input: [stacked_state], self.train_process: False})
+			action_index = np.argmax(Q_value)
+			action[action_index] = 1
+			self.maxQ = np.max(Q_value)
 
 		return action
 
@@ -392,7 +389,7 @@ class Dueling_DQN:
 
 		# Get y_prediction
 		y_batch = []
-		Q_batch = self.output_target.eval(feed_dict = {self.input_target: next_state_batch})
+		Q_batch = self.output_target.eval(feed_dict = {self.input_target: next_state_batch, self.train_process_target: True})
 
 		# Get target values
 		for i in range(len(minibatch)):
@@ -403,7 +400,8 @@ class Dueling_DQN:
 
 		_, self.loss = self.sess.run([self.train_step, self.loss_train], feed_dict = {self.action_target: action_batch,
 										 										      self.y_target: y_batch,
-										 									  	      self.input: state_batch})
+										 									  	      self.input: state_batch,
+																					  self.train_process: True})
 
 	def save_model(self):
 		# Save the variables to disk.
@@ -442,7 +440,6 @@ class Dueling_DQN:
 		print('Step: ' + str(self.step) + ' / ' +
 		      'Episode: ' + str(self.episode) + ' / ' +
 			  'Progress: ' + self.progress + ' / ' +
-			  'Epsilon: ' + str(self.epsilon) + ' / ' +
 			  'Score: ' + str(self.score))
 
 		if self.progress != 'Exploring':
@@ -456,5 +453,5 @@ class Dueling_DQN:
 		return stacked_state
 
 if __name__ == '__main__':
-	agent = Dueling_DQN()
+	agent = NoisyNet_DQN()
 	agent.main()

@@ -92,7 +92,7 @@ class DQN:
 		# Initialize Network
 		self.input, self.output = self.network('network')
 		self.input_target, self.output_target = self.network('target')
-		self.train_step, self.action_target, self.y_prediction, self.loss_train = self.loss_and_train()
+		self.train_step, self.action_target, self.y_target, self.loss_train = self.loss_and_train()
 		self.sess, self.saver, self.summary_placeholders, self.update_ops, self.summary_op, self.summary_writer = self.init_sess()
 
 	def main(self):
@@ -170,9 +170,9 @@ class DQN:
 		check_save = input('Load Model? (1=yes/2=no): ')
 
 		if check_save == 1:
-		    # Restore variables from disk.
-		    saver.restore(sess, self.load_path + "/model.ckpt")
-		    print("Model restored.")
+			# Restore variables from disk.
+			saver.restore(sess, self.load_path + "/model.ckpt")
+			print("Model restored.")
 
 			check_train = input('Inference or Training? (1=Inference / 2=Training): ')
 			if check_train == 1:
@@ -301,13 +301,13 @@ class DQN:
 	def loss_and_train(self):
 		# Loss function and Train
 		action_target = tf.placeholder(tf.float32, shape = [None, self.Num_action])
-		y_prediction = tf.placeholder(tf.float32, shape = [None])
+		y_target = tf.placeholder(tf.float32, shape = [None])
 
-		y_target = tf.reduce_sum(tf.multiply(self.output, action_target), reduction_indices = 1)
+		y_prediction = tf.reduce_sum(tf.multiply(self.output, action_target), reduction_indices = 1)
 		Loss = tf.reduce_mean(tf.square(y_prediction - y_target))
 		train_step = tf.train.AdamOptimizer(learning_rate = self.learning_rate, epsilon = 1e-02).minimize(Loss)
 
-		return train_step, action_target, y_prediction, Loss
+		return train_step, action_target, y_target, Loss
 
 	def select_action(self, stacked_state):
 		action = np.zeros([self.Num_action])
@@ -388,7 +388,7 @@ class DQN:
 				y_batch.append(reward_batch[i] + self.gamma * np.max(Q_batch[i]))
 
 		_, self.loss = self.sess.run([self.train_step, self.loss_train], feed_dict = {self.action_target: action_batch,
-										 										      self.y_prediction: y_batch,
+										 										      self.y_target: y_batch,
 										 									  	      self.input: state_batch})
 
 	def save_model(self):
