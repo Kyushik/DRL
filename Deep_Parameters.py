@@ -29,10 +29,10 @@ Num_stackFrame = 4
 Num_colorChannel = 1
 
 Num_plot_episode = 50
-Num_step_save = 50000
 
-GPU_fraction = 0.3
+GPU_fraction = 0.2
 Is_train = True
+Load_path = ''
 
 img_size = 80
 
