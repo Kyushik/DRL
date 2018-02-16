@@ -92,10 +92,11 @@ So fix the code as you want!! :laughing:
 
 To verify the codes, I used the games as follows. 
 
-* pong (Improved!! :satisfied:) 
-* break out (New!! :smiley:) 
+* pong 
+* break out  
 * tetris
 * wormy
+* dodge (New!! 😃)
 * dot
 * dot test   
   ​
@@ -187,6 +188,25 @@ Rule
 
   ​
 
+**Dodge**
+<p align= "center">
+  <img src="./DQN_GAMES/dodge.PNG" width="300" alt="Combined Image" />
+</p>
+
+This is my own version of dodge which is made by `pygame`
+
+
+Rule
+
+- Blue circle is agent and little red dots are enemy
+- Actions: up, down, left, right, stay (5 actions)
+- If red dot hits blue circle then gets -1 reward. 
+- If blue circle stays alive, gets +0.01 reward.
+
+Dodge the red dot and stay alive!! :smile:
+
+
+
 **Dot**
 <p align= "center">
   <img src="./DQN_GAMES/dot_game.PNG" width="300" alt="Combined Image" />
@@ -205,6 +225,10 @@ I made this game to evaluate my DQN code.
 </p>
 
 This is simple version of Dot. 
+
+
+
+
 
 ---
 ## Deep Q Network (DQN)
