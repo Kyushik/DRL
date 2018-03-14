@@ -10,6 +10,7 @@ This repository is the codes for `Deep Reinforcement Learning`
 * [Dueling Network Architecture for Deep Reinforcement Learning](https://arxiv.org/abs/1511.06581)
 * [Deep Recurrent Q-Learning for Partially Observable MDPs](https://arxiv.org/abs/1507.06527) 
 * [Noisy Networks for Exploration](https://arxiv.org/abs/1706.10295) 
+* [A Distributional Perspective on Reinforcement Learning](https://arxiv.org/abs/1707.06887) -> Code optimization has to be done! 
 * [Deep Attention Recurrent Q-Network](https://arxiv.org/abs/1512.01693)  -> Almost Finished! 
 
 
