@@ -271,21 +271,21 @@ class DDQN:
 
 		with tf.variable_scope(network_name):
 			# Convolution variables
-			w_conv1 = self.conv_weight_variable('w_conv1' + network_name, self.first_conv)
-			b_conv1 = self.bias_variable('b_conv1' + network_name,[self.first_conv[3]])
+			w_conv1 = self.conv_weight_variable(network_name + '_w_conv1', self.first_conv)
+			b_conv1 = self.bias_variable(network_name + '_b_conv1',[self.first_conv[3]])
 
-			w_conv2 = self.conv_weight_variable('w_conv2' + network_name,self.second_conv)
-			b_conv2 = self.bias_variable('b_conv2' + network_name,[self.second_conv[3]])
+			w_conv2 = self.conv_weight_variable(network_name + 'w_conv2',self.second_conv)
+			b_conv2 = self.bias_variable(network_name + '_b_conv2',[self.second_conv[3]])
 
-			w_conv3 = self.conv_weight_variable('w_conv3' + network_name,self.third_conv)
-			b_conv3 = self.bias_variable('b_conv3' + network_name,[self.third_conv[3]])
+			w_conv3 = self.conv_weight_variable(network_name + '_w_conv3',self.third_conv)
+			b_conv3 = self.bias_variable(network_name + '_b_conv3',[self.third_conv[3]])
 
 			# Densely connect layer variables
-			w_fc1 = self.weight_variable('w_fc1' + network_name,self.first_dense)
-			b_fc1 = self.bias_variable('b_fc1' + network_name,[self.first_dense[1]])
+			w_fc1 = self.weight_variable(network_name + 'w_fc1',self.first_dense)
+			b_fc1 = self.bias_variable(network_name + 'b_fc1',[self.first_dense[1]])
 
-			w_fc2 = self.weight_variable('w_fc2' + network_name,self.second_dense)
-			b_fc2 = self.bias_variable('b_fc2' + network_name,[self.second_dense[1]])
+			w_fc2 = self.weight_variable(network_name + 'w_fc2',self.second_dense)
+			b_fc2 = self.bias_variable(network_name + 'b_fc2',[self.second_dense[1]])
 
 		# Network
 		h_conv1 = tf.nn.relu(self.conv2d(x_normalize, w_conv1, 4) + b_conv1)
@@ -303,7 +303,7 @@ class DDQN:
 		action_target = tf.placeholder(tf.float32, shape = [None, self.Num_action])
 		y_target = tf.placeholder(tf.float32, shape = [None])
 
-		y_predictiony_target = tf.reduce_sum(tf.multiply(self.output, action_target), reduction_indices = 1)
+		y_prediction = tf.reduce_sum(tf.multiply(self.output, action_target), reduction_indices = 1)
 		Loss = tf.reduce_mean(tf.square(y_prediction - y_target))
 		train_step = tf.train.AdamOptimizer(learning_rate = self.learning_rate, epsilon = 1e-02).minimize(Loss)
 
@@ -348,10 +348,10 @@ class DDQN:
 
 	def experience_replay(self, state, action, reward, next_state, terminal):
 		# If Replay memory is longer than Num_replay_memory, delete the oldest one
-		if len(self.replay_memory) > self.Num_replay_memory:
+		if len(self.replay_memory) >= self.Num_replay_memory:
 			del self.replay_memory[0]
-		else:
-			self.replay_memory.append([state, action, reward, next_state, terminal])
+
+		self.replay_memory.append([state, action, reward, next_state, terminal])
 
 	def update_target(self):
 		# Get trainable variables

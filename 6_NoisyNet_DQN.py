@@ -284,14 +284,14 @@ class NoisyNet_DQN:
 
 		with tf.variable_scope(network_name):
 			# Convolution variables
-			w_conv1 = self.conv_weight_variable('w_conv1' + network_name, self.first_conv)
-			b_conv1 = self.bias_variable('b_conv1' + network_name,[self.first_conv[3]])
+			w_conv1 = self.conv_weight_variable(network_name + '_w_conv1', self.first_conv)
+			b_conv1 = self.bias_variable(network_name + '_b_conv1',[self.first_conv[3]])
 
-			w_conv2 = self.conv_weight_variable('w_conv2' + network_name,self.second_conv)
-			b_conv2 = self.bias_variable('b_conv2' + network_name,[self.second_conv[3]])
+			w_conv2 = self.conv_weight_variable(network_name + 'w_conv2',self.second_conv)
+			b_conv2 = self.bias_variable(network_name + '_b_conv2',[self.second_conv[3]])
 
-			w_conv3 = self.conv_weight_variable('w_conv3' + network_name,self.third_conv)
-			b_conv3 = self.bias_variable('b_conv3' + network_name,[self.third_conv[3]])
+			w_conv3 = self.conv_weight_variable(network_name + '_w_conv3',self.third_conv)
+			b_conv3 = self.bias_variable(network_name + '_b_conv3',[self.third_conv[3]])
 
 			########################################### Noisy Network ###########################################
 			# Densely connect layer variables (Noisy)
