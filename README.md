@@ -12,6 +12,7 @@ This repository is the codes for `Deep Reinforcement Learning`
 * [Noisy Networks for Exploration](https://arxiv.org/abs/1706.10295) 
 * [A Distributional Perspective on Reinforcement Learning](https://arxiv.org/abs/1707.06887) -> Code optimization has to be done! 
 * [Deep Attention Recurrent Q-Network](https://arxiv.org/abs/1512.01693)  -> Almost Finished! 
+* [Continuous Control with Deep Reinforcement Learning](https://arxiv.org/abs/1509.02971)  -> Working! 
 
 
 
