@@ -32,7 +32,7 @@ class DDPG:
 		self.Action_bound = game.Return_Action_Bound()
 
 		# Initial parameters
-		self.Num_Exploration = 100
+		self.Num_Exploration = 25000
 		# self.Num_Exploration = Deep_Parameters.Num_start_training
 		self.Num_Training    = Deep_Parameters.Num_training
 		self.Num_Testing     = Deep_Parameters.Num_test
@@ -136,7 +136,7 @@ class DDPG:
 			if self.progress == 'Training':
 				# Update target network
 				# if self.step % self.Num_update_target == 0:
-				# self.update_target()
+				self.update_target()
 
 				# Training
 				self.train(self.replay_memory)
@@ -366,11 +366,21 @@ class DDPG:
 	def loss_and_train(self):
 		# Loss function and Train
 		y_target = tf.placeholder(tf.float32, shape = [None])
-		grad_Q = tf.placeholder(tf.float32,[None, self.Num_action])
+		# grad_Q = tf.placeholder(tf.float32,[None, self.Num_action])
 		Loss_critic = tf.reduce_mean(tf.square(tf.subtract(y_target, self.output_critic)))
 
+		grad_Q = tf.gradients(self.output_critic, self.action_critic)
 		# grad_Q_action = tf.gradients(self.output_critic, self.output_actor)
-		grad_J_actor  = tf.gradients(self.output_actor, self.net_vars_actor, -grad_Q[0])
+		grad_J_actor  = zip(tf.gradients(self.output_actor, self.net_vars_actor), self.net_vars_actor)
+		# grad_J_actor  = tf.gradients(self.output_actor, self.net_vars_actor, -grad_Q[0])
+
+		print(self.output_critic.get_shape())
+		print(self.action_critic.get_shape())
+		print(self.output_actor.get_shape())
+		print(len(self.net_vars_actor))
+
+		print(len(grad_Q))
+		print(len(grad_J_actor))
 
 		# Get trainable variables
 		trainable_variables = tf.trainable_variables()
@@ -393,28 +403,39 @@ class DDPG:
 			# Choose random action
 			action = np.random.uniform(-1.0, 1.0, self.Num_action)
 
-			# Do Orstein-Uhlenbeck Process
-			action_actor = self.output_actor.eval(feed_dict={self.input_actor: [stacked_state]})
-			noise_UL = self.theta_UL * (self.mu_UL - action_actor) + self.sigma_UL * np.random.randn(self.Num_action)
-			action = action_actor + noise_UL
-			np.clip(action, -1.0, 1.0)
-			action = np.reshape(action, (self.Num_action))
-
 		elif self.progress == 'Training':
-			# Do Orstein-Uhlenbeck Process
-			action_actor = self.output_actor.eval(feed_dict={self.input_actor: [stacked_state]})
-			noise_UL = self.theta_UL * (self.mu_UL - action_actor) + self.sigma_UL * np.random.randn(self.Num_action)
-			critic_test = self.output_critic.eval(feed_dict={self.input_critic: [stacked_state], self.action_critic: action_actor})
-			print('action_actor: ' + str(action_actor))
-			print('noise_UL: ' + str(noise_UL))
-			action = action_actor + noise_UL
-			np.clip(action, -1.0, 1.0)
-			action = np.reshape(action, (self.Num_action))
+
+			if random.random() < self.epsilon:
+				# Choose random action
+				action = np.random.uniform(-1.0, 1.0, self.Num_action)
+			else:
+				# Choose greedy action
+				action_actor = self.output_actor.eval(feed_dict={self.input_actor: [stacked_state]})
+				np.clip(action_actor, -1.0, 1.0)
+				action = np.reshape(action_actor, (self.Num_action))
+
+			# Decrease epsilon while training
+			if self.epsilon > self.final_epsilon:
+				self.epsilon -= self.first_epsilon/self.Num_Training
+
+			#
+			# # Do Orstein-Uhlenbeck Process
+			# action_actor = self.output_actor.eval(feed_dict={self.input_actor: [stacked_state]})
+			# noise_UL = self.theta_UL * (self.mu_UL - action_actor) + self.sigma_UL * np.random.randn(self.Num_action)
+			# critic_test = self.output_critic.eval(feed_dict={self.input_critic: [stacked_state], self.action_critic: action_actor})
+			# # print('action_actor: ' + str(action_actor))
+			# # print('noise_UL: ' + str(noise_UL))
+			# action = action_actor + noise_UL
+			# np.clip(action, -1.0, 1.0)
+			# action = np.reshape(action, (self.Num_action))
 
 		elif self.progress == 'Testing':
 			# Use actor's output as action
 			action_actor = self.output_actor.eval(feed_dict={self.input_actor: [stacked_state]})
+			np.clip(action_actor, -1.0, 1.0)
 			action = action_actor
+
+			self.epsilon = 0.
 
 		return action
 
@@ -461,12 +482,11 @@ class DDPG:
 		Q_batch = self.output_target_critic.eval(feed_dict = {self.input_target_critic: next_state_batch,
 														      self.action_target_critic: next_output_actor_batch})
 
-
 		output_actor_batch = self.output_actor.eval(feed_dict = {self.input_actor: state_batch})
 		output_critic_batch = self.output_critic.eval(feed_dict = {self.input_critic: state_batch, self.action_critic: output_actor_batch})
 
-		grad_Q_tmp = tf.gradients(output_critic_batch, output_actor_batch)
-		grad_Q_tmp = np.reshape(grad_Q_tmp, (-1,1))
+		# grad_Q_tmp = tf.gradients(output_critic_batch, output_actor_batch)
+		# grad_Q_tmp = np.reshape(grad_Q_tmp, (-1,1))
 
 		# Get target values
 		for i in range(len(minibatch)):
@@ -479,8 +499,7 @@ class DDPG:
 		                                 feed_dict = {self.y_target: y_batch,
 										 			  self.input_actor: state_batch,
 													  self.input_critic: state_batch,
-													  self.action_critic: output_actor_batch,
-													  self.grad_Q_action: grad_Q_tmp})
+													  self.action_critic: output_actor_batch})
 
 	def save_model(self):
 		# Save the variables to disk.
