@@ -203,20 +203,6 @@ class DRQN:
 			self.state_set.append(state)
 
 		return state
-    #
-	# def skip_and_stack_frame(self, state):
-	# 	self.state_set.append(state)
-    #
-	# 	state_in = []
-    #
-	# 	# Append frames according to the number of skipping frame from old to new state
-	# 	for num_frame in range(self.step_size-1, -1, -1):
-	# 		state_in.append(self.state_set[-1 - (self.Num_skipping * num_frame)])
-    #
-	# 	del self.state_set[0]
-    #
-	# 	state_in = np.uint8(state_in)
-	# 	return state_in
 
 	def get_progress(self):
 		progress = ''
@@ -282,8 +268,6 @@ class DRQN:
 
 		x_normalize = (x_image - (255.0/2)) / (255.0/2)
 
-		cell = tf.contrib.rnn.BasicLSTMCell(num_units = self.lstm_size, state_is_tuple = True)
-
 		with tf.variable_scope(network_name):
 			# Convolution variables
 			w_conv1 = self.conv_weight_variable(network_name + '_w_conv1', self.first_conv)
@@ -298,6 +282,9 @@ class DRQN:
 			# Densely connect layer variables
 			w_fc1 = self.weight_variable(network_name + 'w_fc1',self.first_dense)
 			b_fc1 = self.bias_variable(network_name + 'b_fc1',[self.first_dense[1]])
+
+			# LSTM cell
+			cell = tf.contrib.rnn.BasicLSTMCell(num_units = self.lstm_size, state_is_tuple = True)
 
 			# Network
 			h_conv1 = tf.nn.relu(self.conv2d(x_normalize, w_conv1, 4) + b_conv1)
