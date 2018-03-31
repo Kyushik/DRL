@@ -270,21 +270,21 @@ class DRQN:
 
 		with tf.variable_scope(network_name):
 			# Convolution variables
-			w_conv1 = self.conv_weight_variable(network_name + '_w_conv1', self.first_conv)
-			b_conv1 = self.bias_variable(network_name + '_b_conv1',[self.first_conv[3]])
+			w_conv1 = self.conv_weight_variable('_w_conv1', self.first_conv)
+			b_conv1 = self.bias_variable('_b_conv1',[self.first_conv[3]])
 
-			w_conv2 = self.conv_weight_variable(network_name + 'w_conv2',self.second_conv)
-			b_conv2 = self.bias_variable(network_name + '_b_conv2',[self.second_conv[3]])
+			w_conv2 = self.conv_weight_variable('_w_conv2',self.second_conv)
+			b_conv2 = self.bias_variable('_b_conv2',[self.second_conv[3]])
 
-			w_conv3 = self.conv_weight_variable(network_name + '_w_conv3',self.third_conv)
-			b_conv3 = self.bias_variable(network_name + '_b_conv3',[self.third_conv[3]])
+			w_conv3 = self.conv_weight_variable('_w_conv3',self.third_conv)
+			b_conv3 = self.bias_variable('_b_conv3',[self.third_conv[3]])
 
 			# Densely connect layer variables
-			w_fc1 = self.weight_variable(network_name + 'w_fc1',self.first_dense)
-			b_fc1 = self.bias_variable(network_name + 'b_fc1',[self.first_dense[1]])
+			w_fc1 = self.weight_variable('_w_fc1',self.first_dense)
+			b_fc1 = self.bias_variable('_b_fc1',[self.first_dense[1]])
 
 			# LSTM cell
-			cell = tf.contrib.rnn.BasicLSTMCell(num_units = self.lstm_size, state_is_tuple = True)
+			cell = tf.contrib.rnn.BasicLSTMCell(num_units = self.lstm_size)
 
 			# Network
 			h_conv1 = tf.nn.relu(self.conv2d(x_normalize, w_conv1, 4) + b_conv1)
