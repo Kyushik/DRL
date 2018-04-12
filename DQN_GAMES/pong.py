@@ -1,14 +1,12 @@
 # Atari pong
 # By KyushikMin kyushikmin@gamil.com
-# http://mmc.hanyang.ac.kr 
+# http://mmc.hanyang.ac.kr
 
 import random, sys, time, math, pygame
 from pygame.locals import *
 import numpy as np
-import copy
 
 # Window Information
-FPS = 30 
 WINDOW_WIDTH = 480
 WINDOW_HEIGHT = 360
 
@@ -45,51 +43,26 @@ enemy_bar_init_position = (WINDOW_HEIGHT - enemy_bar_height)/2
 enemy_bar_speed = 10
 
 ball_init_position_x = WINDOW_WIDTH / 2
-ball_init_position_y = WINDOW_HEIGHT / 2 
+ball_init_position_y = WINDOW_HEIGHT / 2
 
 ball_radius = 5
 
 class GameState:
     def __init__(self):
-        global FPS_CLOCK, DISPLAYSURF, BASIC_FONT
+        global DISPLAYSURF, BASIC_FONT
 
         pygame.init()
-        FPS_CLOCK = pygame.time.Clock()
 
         DISPLAYSURF = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
         pygame.display.set_caption('Pong')
-        # pygame.display.set_icon(pygame.image.load('./Qar_Sim/icon_resize2.png'))
-
         BASIC_FONT = pygame.font.Font('freesansbold.ttf', 16)
 
         # Set initial parameters
-
         self.init = True
         self.my_score = 0
         self.enemy_score = 0
         self.hit_count = 0
-
-        self.my_bar_position = my_bar_init_position
-
-        self.enemy_bar_position = enemy_bar_init_position
-
-        self.ball_position_x = ball_init_position_x
-        self.ball_position_y = ball_init_position_y
-
-        random_start_x = random.randint(0, 1)
-        random_start_y = random.randint(0, 1)
-
-        if random_start_x == 0:
-            self.ball_speed_x = - random.uniform(6.0, 9.0)
-        else:
-            self.ball_speed_x = random.uniform(6.0, 9.0)
-
-        if random_start_y == 0:
-            self.ball_speed_y = -random.uniform(6.0, 9.0)
-        else:
-            self.ball_speed_y = random.uniform(6.0, 9.0)
-
 
     def frame_step(self, input): # Game loop
         # Initial settings
@@ -99,7 +72,7 @@ class GameState:
 
             self.ball_position_x = ball_init_position_x
             self.ball_position_y = ball_init_position_y
-            
+
             self.hit_count = 0
 
             random_start_x = random.randint(0, 1)
@@ -124,7 +97,7 @@ class GameState:
 
         # Control the bar
         if input[1] == 1:
-            self.my_bar_position -= my_bar_speed			
+            self.my_bar_position -= my_bar_speed
         elif input[2] == 1:
             self.my_bar_position += my_bar_speed
 
@@ -152,40 +125,41 @@ class GameState:
         # Ball is bounced when the ball hit the wall
         if self.ball_position_y <= 0 or self.ball_position_y >= WINDOW_HEIGHT:
             self.ball_speed_y = - self.ball_speed_y
-        
+
         reward = 0
-        terminal = False 
+        terminal = False
 
         # Ball is bounced when the ball hit the bar
         if self.ball_position_x <= my_bar_width:
             # Hit the ball!
-            if self.ball_position_y <=self. my_bar_position + my_bar_height and self.ball_position_y >= self.my_bar_position:
+            if self.ball_position_y <= self. my_bar_position + my_bar_height and self.ball_position_y >= self.my_bar_position:
                 self.ball_position_x = my_bar_width + 1
                 self.ball_speed_x = - self.ball_speed_x
 
                 # When the ball is at the corner
                 if self.ball_position_y >= WINDOW_HEIGHT:
                     self.ball_position_x = my_bar_width + 1
-                    self.ball_position_y = WINDOW_HEIGHT -1 
+                    self.ball_position_y = WINDOW_HEIGHT -1
                     self.ball_speed_x = - self.ball_speed_x
                     self.ball_speed_y = - self.ball_speed_y
 
                 if self.ball_position_y <= 0:
                     self.ball_position_x = my_bar_width +1
-                    self.ball_position_y = 1 
+                    self.ball_position_y = 1
                     self.ball_speed_x = - self.ball_speed_x
-                    self.ball_speed_y = - self.ball_speed_y  
-            
+                    self.ball_speed_y = - self.ball_speed_y
+
                 reward = 1
                 self.hit_count += 1
-        
-        # Lose :( 
+
+        # Lose :(
         if self.ball_position_x <= 0:
             self.enemy_score += 1
-            
+
             if self.enemy_score > 10:
                 self.enemy_score = 0
                 self.my_score = 0
+
             reward = -1
             terminal = True
             self.init = True
@@ -200,27 +174,27 @@ class GameState:
                 # When the ball is at the corner
                 if self.ball_position_y >= WINDOW_HEIGHT:
                     self.ball_position_x = WINDOW_WIDTH - enemy_bar_width -1
-                    self.ball_position_y = WINDOW_HEIGHT -1 
+                    self.ball_position_y = WINDOW_HEIGHT -1
                     self.ball_speed_x = - self.ball_speed_x
                     self.ball_speed_y = - self.ball_speed_y
 
                 if self.ball_position_y <= 0:
                     self.ball_position_x = WINDOW_WIDTH - enemy_bar_width -1
-                    self.ball_position_y = 1 
+                    self.ball_position_y = 1
                     self.ball_speed_x = - self.ball_speed_x
-                    self.ball_speed_y = - self.ball_speed_y                
+                    self.ball_speed_y = - self.ball_speed_y
 
         # WIN!! :)
         if self.ball_position_x >= WINDOW_WIDTH:
             self.my_score += 1
-           
+
             if self.my_score > 10:
                 self.enemy_score = 0
                 self.my_score = 0
-            
+
             reward = 1
             terminal = True
-            self.init = True 
+            self.init = True
 
         # If bar hit the ball more than hit count threshold, game is finished!
         if self.hit_count == 10:
@@ -244,7 +218,7 @@ class GameState:
 
         # Draw ball
         pygame.draw.circle(DISPLAYSURF, WHITE, (int(self.ball_position_x), int(self.ball_position_y)), ball_radius, 0)
-        
+
         # Draw line for seperate game and info
         pygame.draw.line(DISPLAYSURF, WHITE, (WINDOW_WIDTH/2, 0), (WINDOW_WIDTH/2, WINDOW_HEIGHT), 3)
 
@@ -258,12 +232,9 @@ class GameState:
         pygame.quit()
         sys.exit()
 
-    # Display score 
+    # Display score
     def score_msg(self, score, position):
         scoreSurf = BASIC_FONT.render(str(score), True, WHITE)
         scoreRect = scoreSurf.get_rect()
         scoreRect.topleft = position
         DISPLAYSURF.blit(scoreSurf, scoreRect)
-    	
-if __name__ == '__main__':
-	main()

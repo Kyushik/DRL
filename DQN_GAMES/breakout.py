@@ -40,7 +40,7 @@ bar_init_position = (WINDOW_WIDTH - bar_width)/2
 ball_init_position_x = WINDOW_WIDTH / 2
 ball_init_position_y = (WINDOW_HEIGHT - INFO_GAP) / 2 + UPPER_GAP
 ball_radius = 5
-ball_bounce_speed_range = 8
+ball_bounce_speed_range = 10
 
 block_width  = 48
 block_height = 18
@@ -75,17 +75,6 @@ class GameState:
 		self.init = True
 		self.score = 0
 		self.reward = 0
-
-		self.bar_position =bar_init_position
-
-		self.ball_position_x = ball_init_position_x
-		self.ball_position_y = ball_init_position_y
-		self.ball_position_x_old = ball_init_position_x
-		self.ball_position_y_old = ball_init_position_y
-
-		# self.ball_speed_x = random.randint(-3, 3)
-		self.ball_speed_x = random.uniform(-3.0, 3.0)
-		self.ball_speed_y = 5
 
 		self.num_blocks = num_block_row * num_block_col
 
@@ -349,6 +338,3 @@ class GameState:
 
 	def get_dist(self, point1, point2):
 		return math.sqrt(math.pow(point1[0] - point2[0],2) + math.pow(point1[1] - point2[1], 2))
-
-if __name__ == '__main__':
-	main()
