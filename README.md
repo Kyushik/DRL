@@ -347,7 +347,7 @@ The graph of average score is as follows.
 
 ---
 
-##Dueling Deep Q Network
+## Dueling Deep Q Network
 
 I studied `Dueling Deep Q Network` with the paper [Dueling Network Architecture for Deep Reinforcement Learning](https://arxiv.org/abs/1511.06581).
 
