@@ -2,8 +2,12 @@
 
 ## Introduction
 This repository is the codes for `Deep Reinforcement Learning`
-<br> I verified my codes with games. The games are made with `pygame`. I made the games or I modified them to apply for DRL.
+<br> I verified my codes with games. The games are made with `pygame`. I made the games or I modified them to apply for DRL. 
+
+Also, environments, which are made by `Unity ML-agents` are in  [Unity_ML_Agent Repository](https://github.com/Kyushik/Unity_ML_Agent)
+
 <br> I set up the DQN code as follows. 
+
 * [Human-level Control Through Deep Reinforcement Learning](https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf)
 * [Deep Reinforcement Learning with Double Q-Learning](https://arxiv.org/abs/1509.06461)
 * [Prioritized Experience Replay](https://arxiv.org/abs/1511.05952) 
