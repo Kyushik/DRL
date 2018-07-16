@@ -37,10 +37,10 @@ I studied `Double Deep Q Network` with the paper [Deep Reinforcement Learning wi
 
 <br> As a result, the difference between DQN and DDQN at each update is as follows.
 <p align= "center">
-  <img src="D:/Github/DRL/Image/DQN_equation.PNG" width="400" alt="Combined Image" />
+  <img src="./Image/DQN_equation.PNG" width="400" alt="Combined Image" />
 </p>
 <p align= "center">
-  <img src="D:/Github/DRL/Image/DDQN_equation.PNG" width="500" alt="Combined Image" />
+  <img src="./Image/DDQN_equation.PNG" width="500" alt="Combined Image" />
 </p>
 
 <br> I verified the code with the game `breakout`. 
@@ -67,7 +67,7 @@ The important transitions are measured by the `magnitude of their temporal diffe
 
 The equation of TD Error is as follows.
 
-<img src="D:/Github/DRL/Image/PER_equation1.png" width="500" alt="Combined Image" />
+<img src="./Image/PER_equation1.png" width="500" alt="Combined Image" />
 
 
 
@@ -81,9 +81,9 @@ However, greedy TD-error prioritization has several issues.
 
 To overcome these issues, stochastic sampling method that interpolates between `pure greedy prioritization` and `uniform random sampling`. 
 
-​For guaranteeing a non-zero probability even for the lowest-priority transition, it defines the `probability of sampling transition` i as
+For guaranteeing a non-zero probability even for the lowest-priority transition, it defines the `probability of sampling transition` i as
 
-<img src="D:/Github/DRL/Image/PER_equation2.png" width="150" alt="Combined Image" />
+<img src="./Image/PER_equation2.png" width="150" alt="Combined Image" />
 
 - p_i > 0 is the priority of transition i. 
 - The exponential alpha determines how much prioritization is used, with alpha = 0 corresponding to the uniform case. 
@@ -92,13 +92,13 @@ To determine p_i, there are 2 ways.
 
 1. Proportional Prioritization
 
-   <img src="D:/Github/DRL/Image/PER_equation3.png" width="150" alt="Combined Image" />
+   <img src="./Image/PER_equation3.png" width="150" alt="Combined Image" />
 
    - epsilon is a small positive constant that prevents the edge-case of the transitions not being revisited once their error is zero.
 
 2. Rank-based Prioritization
 
-   <img src="D:/Github/DRL/Image/PER_equation4.png" width="150" alt="Combined Image" />
+   <img src="./Image/PER_equation4.png" width="150" alt="Combined Image" />
 
    - rank(i) is the rank of the transition i when the replay memory is sorted according to delta_i
 
@@ -106,7 +106,7 @@ To determine p_i, there are 2 ways.
 
 The algorithm of the prioritized experience replay is as follows. 
 
-<img src="D:/Github/DRL/Image/algorithm_PER.png" width="700" alt="Combined Image" />
+<img src="./Image/algorithm_PER.png" width="700" alt="Combined Image" />
 
 <br> I verified the algorithm with the game `breakout`. 
 
@@ -127,13 +127,13 @@ This paper presents a new neural network architecture for model-free reinforceme
 - State value function
 - Action advantage function
 
-<img src="D:/Github/DRL/Image/architecture_Dueling.png" width="500" alt="Dueling Architecture" />
+<img src="./Image/architecture_Dueling.png" width="500" alt="Dueling Architecture" />
 
 The image at the top is single stream DQN and image at the bottom is dueling DQN. Dueling network has 2 streams to separately estimate (scalar) state-value and the advantages for each action. After that combine them to get final Q-values as output.
 
 The equation of Q-values is as follows. 
 
-<img src="D:/Github/DRL/Image/Dueling_Equation1.png" width="500" alt="Dueling Equation" />
+<img src="./Image/Dueling_Equation1.png" width="500" alt="Dueling Equation" />
 
  The V (s; θ, β) is provides an estimate of the value function. Also, A(s, a; θ, α) is result of advantage stream. The advantage function subtracts the average value of the advantage function to obtain a relative measure of the importance of each action. 
 
@@ -161,7 +161,7 @@ As a result, it remembers events more distance than 4 screens in the past. Also,
 
 The architecture of the DRQN is as follows. 
 
-<img src="D:/Github/DRL/Image/architecture_DRQN.png" width="400" alt="Architecure DRQN" />
+<img src="./Image/architecture_DRQN.png" width="400" alt="Architecure DRQN" />
 
 
 
@@ -197,13 +197,13 @@ This algorithm is a deep reinforcement learning agent with parametric noise adde
 
 In the paper, description of the NoisyNet is as follows. It replaces the linear layers by noisy layers.
 
-<img src="D:/Github/DRL/Image/NoisyNet_Description.PNG" alt="NoisyNet_Description" />
+<img src="./Image/NoisyNet_Description.PNG" alt="NoisyNet_Description" />
 
 
 
 There are more variables for NoisyNet (`mu` and `sigma`). Therefore, the loss function of algorithms is also changed. DQN loss becomes the NoisyNet-DQN loss as follows.
 
-<img src="D:/Github/DRL/Image/NoisyNet_Loss.PNG" width="500" alt="Plot Dueling-DQN" />
+<img src="./Image/NoisyNet_Loss.PNG" width="500" alt="Plot Dueling-DQN" />
 
 Outer expectation is with respect to distribution of the noise variables *epsilon* for the noisy value function Q(x, a, epsilon; zeta) and the noise variable *epsilon`* of the noisy target value function Q(y, b, epsilon`;target zeta).
 
@@ -211,7 +211,7 @@ Outer expectation is with respect to distribution of the noise variables *epsilo
 
 The algorithm from the paper is as follows. 
 
-<img src="D:/Github/DRL/Image/NoisyNet_Algorithm.PNG" width="500" alt="Plot Dueling-DQN" />
+<img src="./Image/NoisyNet_Algorithm.PNG" width="500" alt="Plot Dueling-DQN" />
 
 <br> I verified the algorithm with the game `breakout`. 
 
