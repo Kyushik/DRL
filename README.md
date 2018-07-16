@@ -14,8 +14,7 @@ Also, environments, which are made by `Unity ML-agents` are in  [Unity_ML_Agent 
 * [Dueling Network Architecture for Deep Reinforcement Learning](https://arxiv.org/abs/1511.06581)
 * [Deep Recurrent Q-Learning for Partially Observable MDPs](https://arxiv.org/abs/1507.06527) 
 * [Noisy Networks for Exploration](https://arxiv.org/abs/1706.10295) 
-* [A Distributional Perspective on Reinforcement Learning](https://arxiv.org/abs/1707.06887) -> Code optimization has to be done! 
-* [Deep Attention Recurrent Q-Network](https://arxiv.org/abs/1512.01693)  -> Almost Finished! 
+* [A Distributional Perspective on Reinforcement Learning (C51)](https://arxiv.org/abs/1707.06887) -> Code optimization has to be done! 
 * [Continuous Control with Deep Reinforcement Learning](https://arxiv.org/abs/1509.02971)  -> Working! 
 
 
@@ -24,7 +23,17 @@ This is the [PPT file](https://www.dropbox.com/s/0o72oqe7f5kip4z/DQN.pdf?dl=0) f
 
 
 
+Performance of each algorithm that I implemented are as follows (verified with Breakout).  
+
+![Performance](./Image/Performance.png)
+
+
+
+#### The description of DRL algorithms
+
 [Description of algorithms link](https://github.com/Kyushik/DRL/blob/master/README_Algorithms.md)
+
+<br>
 
 ---
 ## Environment
@@ -38,8 +47,12 @@ This is the [PPT file](https://www.dropbox.com/s/0o72oqe7f5kip4z/DQN.pdf?dl=0) f
 
 **Hardware**
 * CPU: Intel(R) Core(TM) i7-4790K CPU @ 4.00GHZ
+
 * GPU: GeForce GTX 1080
+
 * Memory: 8GB
+
+  <br>
 
 ---
 ## Implementation
@@ -92,6 +105,8 @@ checkpoint = tf.train.get_checkpoint_state("saved_networks_DQN")
 
 Then you are ready to implement the code! :laughing:
 
+<br>
+
 ---
 ## Games 
 Most of the games are made with python and pygame! 
@@ -101,5 +116,7 @@ The codes are easy to understand and variables are easy to understand.
 So fix the code as you want!! :laughing: 
 
 
+
+#### Description of the games
 
 [Specific description of games](https://github.com/Kyushik/DRL/blob/master/README_Games.md)

@@ -7,21 +7,7 @@
 I studied `Deep Q Network` with the famous paper [Human-level control through deep reinforcement learning](http://www.nature.com/nature/journal/v518/n7540/full/nature14236.html) from Deep mind and `deep q network code` from [github of asrivat1](https://github.com/asrivat1/DeepLearningVideoGames).
 After, I studied DQN and made my own code. 
 
-<br> I verified the code with the game `breakout`. 
 
-The graph of average score is as follows.
-
-<img src="./Plot/2017-10-19_10_28_DQN_breakout11.1461538462.png" width="500" alt="Plot DQN" />
-
-<br> The `average testing score is 11.14`
-
-
-
-Each point is the average score of 50 games. 
-<br> The graph shows that as the training progresses, the average score increases.
-<br> I think it shows that DQN algorithm works well. 😃 
-
-Also, the `average testing score is 18.43`
 
 ------
 
@@ -43,13 +29,7 @@ I studied `Double Deep Q Network` with the paper [Deep Reinforcement Learning wi
   <img src="./Image/DDQN_equation.PNG" width="500" alt="Combined Image" />
 </p>
 
-<br> I verified the code with the game `breakout`. 
-
-The graph of average score is as follows.
-
-<img src="./Plot/2017-10-19_14_32_DDQN_breakout11.7741935484.png" width="500" alt="Plot DDQN" />
-
-<br> The `average testing score is 11.77`
+<br>
 
 ------
 
@@ -108,13 +88,7 @@ The algorithm of the prioritized experience replay is as follows.
 
 <img src="./Image/algorithm_PER.png" width="700" alt="Combined Image" />
 
-<br> I verified the algorithm with the game `breakout`. 
-
-The graph of average score is as follows.
-
-<img src="./Plot/2017-10-19_20_34_PER_breakout21.024.png" width="500" alt="Plot DDQN" />
-
-<br> The `average testing score is 21.02`!! Wow! 👏
+<br>
 
 ------
 
@@ -141,13 +115,7 @@ The estimates V (s; θ, β) and A(s, a; θ, α) are computed automatically witho
 
 
 
-<br> I verified the algorithm with the game `breakout`. 
-
-The graph of average score is as follows.
-
-<img src="./Plot/2017-10-19_13_47_Duel_DQN_breakout17.7396449704.png" width="500" alt="Plot Dueling-DQN" />
-
-<br> The `average testing score is 17.73`
+<br>
 
 ------
 
@@ -168,15 +136,7 @@ The architecture of the DRQN is as follows.
 DRQN convolves three times over a single-channel image of the game screen. The resulting activations are
 processed through time by an LSTM layer.  The last two timesteps are shown here. LSTM outputs become Q-Values after passing through a fully-connected layer. 
 
-
-
-<br> I verified the algorithm with the game `breakout`. 
-
-The graph of average score is as follows.
-
-<img src="./Plot/2017-10-19_19_51_DRQN_breakout13.8416289593.png" width="500" alt="Plot Dueling-DQN" />
-
-<br> The `average testing score is 13.84`
+<br>
 
 ------
 
@@ -213,11 +173,5 @@ The algorithm from the paper is as follows.
 
 <img src="./Image/NoisyNet_Algorithm.PNG" width="500" alt="Plot Dueling-DQN" />
 
-<br> I verified the algorithm with the game `breakout`. 
-
-The graph of average score is as follows.
-
-<img src="./Plot/2017-10-19_0_41_Noisy_DQN_breakout41.7384615385.png" width="500" alt="Plot NoisyNet-DQN" />
-
-<br> The `average testing score is 41.73!!` wow!  
+<br>
 
