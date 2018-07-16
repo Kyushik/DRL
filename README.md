@@ -22,7 +22,9 @@ Also, environments, which are made by `Unity ML-agents` are in  [Unity_ML_Agent 
 
 This is the [PPT file](https://www.dropbox.com/s/0o72oqe7f5kip4z/DQN.pdf?dl=0) for the `description of DQN codes` that I implemented. 
 
-[Description of algorithms link](./README_Algorithms)
+
+
+[Description of algorithms link](https://github.com/Kyushik/DRL/blob/master/README_Algorithms.md)
 
 ---
 ## Environment
@@ -98,4 +100,6 @@ The codes are easy to understand and variables are easy to understand.
 
 So fix the code as you want!! :laughing: 
 
-[Specific description of games](./README_Games)
+
+
+[Specific description of games](https://github.com/Kyushik/DRL/blob/master/README_Games.md)
