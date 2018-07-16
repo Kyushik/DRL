@@ -23,9 +23,11 @@ This is the [PPT file](https://www.dropbox.com/s/0o72oqe7f5kip4z/DQN.pdf?dl=0) f
 
 
 
-Performance of each algorithm that I implemented are as follows (verified with Breakout).  
+Performance of each algorithm that I implemented are as follows (verified with `Breakout`).  
 
 ![Performance](./Image/Performance.png)
+
+[Youtube Link of Playing Breakout with NoisyNet DQN](https://youtu.be/h8UtVZ5XCtY)
 
 
 
