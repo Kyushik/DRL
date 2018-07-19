@@ -178,16 +178,15 @@ class PER:
 
 		# Load the file if the saved file exists
 		saver = tf.train.Saver()
-		# check_save = 1
 		check_save = input('Load Model? (1=yes/2=no): ')
 
-		if check_save == 1:
+		if check_save == '1':
 			# Restore variables from disk.
 			saver.restore(sess, self.load_path + "/model.ckpt")
 			print("Model restored.")
 
 			check_train = input('Inference or Training? (1=Inference / 2=Training): ')
-			if check_train == 1:
+			if check_train == '1':
 				self.Num_Exploration = 0
 				self.Num_Training = 0
 
