@@ -14,7 +14,8 @@ Also, environments, which are made by `Unity ML-agents` are in  [Unity_ML_Agent 
 * [Dueling Network Architecture for Deep Reinforcement Learning](https://arxiv.org/abs/1511.06581)
 * [Deep Recurrent Q-Learning for Partially Observable MDPs](https://arxiv.org/abs/1507.06527) 
 * [Noisy Networks for Exploration](https://arxiv.org/abs/1706.10295) 
-* [A Distributional Perspective on Reinforcement Learning (C51)](https://arxiv.org/abs/1707.06887) -> Code optimization has to be done! 
+* [A Distributional Perspective on Reinforcement Learning (C51)](https://arxiv.org/abs/1707.06887) 
+* [Distributional Reinforcement Learning with Quantile Regression(QR-DQN)](https://arxiv.org/abs/1710.10044)
 * [Continuous Control with Deep Reinforcement Learning](https://arxiv.org/abs/1509.02971)  -> Working! 
 
 
