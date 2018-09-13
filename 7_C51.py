@@ -172,15 +172,16 @@ class C51:
 
 		# Load the file if the saved file exists
 		saver = tf.train.Saver()
+		# check_save = 1
 		check_save = input('Load Model? (1=yes/2=no): ')
 
-		if check_save == '1':
+		if check_save == 1:
 			# Restore variables from disk.
 			saver.restore(sess, self.load_path + "/model.ckpt")
 			print("Model restored.")
 
 			check_train = input('Inference or Training? (1=Inference / 2=Training): ')
-			if check_train == '1':
+			if check_train == 1:
 				self.Num_Exploration = 0
 				self.Num_Training = 0
 
@@ -203,7 +204,7 @@ class C51:
 
 		# Stack the frame according to the number of skipping frame
 		for stack_frame in range(self.Num_stacking):
-			state_in[:,:,stack_frame] = self.state_set[-1 - (self.Num_skipping * stack_frame)]
+			state_in[:,:, self.Num_colorChannel * stack_frame : self.Num_colorChannel * (stack_frame+1)] = self.state_set[-1 - (self.Num_skipping * stack_frame)]
 
 		del self.state_set[0]
 
@@ -228,7 +229,7 @@ class C51:
 		state_out = cv2.resize(state, (self.img_size, self.img_size))
 		if self.Num_colorChannel == 1:
 			state_out = cv2.cvtColor(state_out, cv2.COLOR_BGR2GRAY)
-			state_out = np.reshape(state_out, (self.img_size, self.img_size))
+			state_out = np.reshape(state_out, (self.img_size, self.img_size, 1))
 
 		state_out = np.uint8(state_out)
 
@@ -306,9 +307,7 @@ class C51:
 		logits = tf.matmul(h_fc1, w_fc2) + b_fc2
 		logits_reshape = tf.reshape(logits, [-1, self.Num_action, self.Num_atom])
 		p_action = tf.nn.softmax(logits_reshape)
-		z_action = tf.tile(z, [tf.shape(logits_reshape)[0] * tf.shape(logits_reshape)[1], 1])
-		z_action = tf.reshape(z_action, [-1, self.Num_action, self.Num_atom])
-		Q_action = tf.reduce_sum(tf.multiply(z_action, p_action), axis = 2)
+		Q_action = tf.reduce_sum(tf.multiply(z, p_action), axis = 2)
 
 		return x_image, Q_action, p_action, z, logits
 
@@ -316,17 +315,15 @@ class C51:
 		# Loss function and Train
 		m_loss = tf.placeholder(tf.float32, shape = [self.Num_batch, self.Num_atom])
 		action_binary_loss = tf.placeholder(tf.float32, shape = [None, self.Num_action * self.Num_atom])
-		logit_valid_loss = tf.multiply(self.logits, action_binary_loss)
+		
+		logit_valid = tf.multiply(self.logits, action_binary_loss)
+		logit_valid_reshape = tf.reshape(logit_valid, [-1, self.Num_action, self.Num_atom])
+		logit_valid_nonzero = tf.reduce_sum(logit_valid_reshape, axis = 1)
 
-		diagonal = tf.ones([self.Num_atom])
-		diag = tf.diag(diagonal)
-		diag = tf.tile(diag, [self.Num_action, 1])
+		p_loss = tf.nn.softmax(logit_valid_nonzero)
 
-		logit_final_loss = tf.matmul(logit_valid_loss, diag)
-		p_loss = tf.nn.softmax(logit_final_loss)
-
-		Loss = - tf.reduce_mean(tf.reduce_sum(tf.multiply(m_loss, tf.log(p_loss + 1e-20)), axis = 1))
-		train_step = tf.train.AdamOptimizer(learning_rate = self.learning_rate, epsilon = 1e-02).minimize(Loss)
+		Loss = - tf.reduce_mean(tf.reduce_sum(tf.multiply(m_loss, tf.log(p_loss + 1e-8)), axis = 1))
+		train_step = tf.train.AdamOptimizer(learning_rate = self.learning_rate, epsilon = 1e-02/self.Num_batch).minimize(Loss)
 
 		return train_step, m_loss, action_binary_loss, Loss
 
@@ -448,7 +445,9 @@ class C51:
 			action_binary[i, self.Num_atom * action_batch_max : self.Num_atom * (action_batch_max + 1)] = 1
 
 		_, self.loss = self.sess.run([self.train_step, self.loss_train],
-		                              feed_dict = {self.input: state_batch, self.m_loss: m_batch, self.action_binary_loss: action_binary})
+		                              feed_dict = {self.input: state_batch, 
+									  			   self.m_loss: m_batch, 
+												   self.action_binary_loss: action_binary})
 
 	def save_model(self):
 		# Save the variables to disk.

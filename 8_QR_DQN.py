@@ -29,8 +29,8 @@ class QR_DQN:
 		self.progress = ''
 		self.Num_action = game.Return_Num_Action()
 
-		# C51 Parameters
-		self.Num_quantile = 200
+		# QR-DQN Parameters
+		self.Num_quantile = 51
 
 		# Initial parameters
 		self.Num_Exploration = Deep_Parameters.Num_start_training
@@ -201,7 +201,7 @@ class QR_DQN:
 
 		# Stack the frame according to the number of skipping frame
 		for stack_frame in range(self.Num_stacking):
-			state_in[:,:,stack_frame] = self.state_set[-1 - (self.Num_skipping * stack_frame)]
+			state_in[:,:, self.Num_colorChannel * stack_frame : self.Num_colorChannel * (stack_frame+1)] = self.state_set[-1 - (self.Num_skipping * stack_frame)]
 
 		del self.state_set[0]
 
@@ -226,7 +226,7 @@ class QR_DQN:
 		state_out = cv2.resize(state, (self.img_size, self.img_size))
 		if self.Num_colorChannel == 1:
 			state_out = cv2.cvtColor(state_out, cv2.COLOR_BGR2GRAY)
-			state_out = np.reshape(state_out, (self.img_size, self.img_size))
+			state_out = np.reshape(state_out, (self.img_size, self.img_size, 1))
 
 		state_out = np.uint8(state_out)
 

@@ -161,15 +161,16 @@ class NoisyNet_DQN:
 
 		# Load the file if the saved file exists
 		saver = tf.train.Saver()
+		# check_save = 1
 		check_save = input('Load Model? (1=yes/2=no): ')
 
-		if check_save == '1':
+		if check_save == 1:
 			# Restore variables from disk.
 			saver.restore(sess, self.load_path + "/model.ckpt")
 			print("Model restored.")
 
 			check_train = input('Inference or Training? (1=Inference / 2=Training): ')
-			if check_train == '1':
+			if check_train == 1:
 				self.Num_Exploration = 0
 				self.Num_Training = 0
 
@@ -192,7 +193,7 @@ class NoisyNet_DQN:
 
 		# Stack the frame according to the number of skipping frame
 		for stack_frame in range(self.Num_stacking):
-			state_in[:,:,stack_frame] = self.state_set[-1 - (self.Num_skipping * stack_frame)]
+			state_in[:,:, self.Num_colorChannel * stack_frame : self.Num_colorChannel * (stack_frame+1)] = self.state_set[-1 - (self.Num_skipping * stack_frame)]
 
 		del self.state_set[0]
 
@@ -217,7 +218,7 @@ class NoisyNet_DQN:
 		state_out = cv2.resize(state, (self.img_size, self.img_size))
 		if self.Num_colorChannel == 1:
 			state_out = cv2.cvtColor(state_out, cv2.COLOR_BGR2GRAY)
-			state_out = np.reshape(state_out, (self.img_size, self.img_size))
+			state_out = np.reshape(state_out, (self.img_size, self.img_size, 1))
 
 		state_out = np.uint8(state_out)
 
