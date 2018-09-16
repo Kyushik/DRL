@@ -95,7 +95,7 @@ class QR_DQN:
 		# Initialize Network
 		self.input, self.Q_action, self.logits = self.network('network')
 		self.input_target, self.Q_action_target, self.logits_target = self.network('target')
-		self.train_step, self.theta_loss, self.action_binary_loss, self.loss_train = self.loss_and_train()
+		self.train_step, self.theta_target, self.action_binary_loss, self.loss_train = self.loss_and_train()
 		self.sess, self.saver, self.summary_placeholders, self.update_ops, self.summary_op, self.summary_writer = self.init_sess()
 
 	def main(self):
@@ -307,20 +307,20 @@ class QR_DQN:
 
 	def loss_and_train(self):
 		# Loss function and Train
-		theta_loss = tf.placeholder(tf.float32, shape = [None, self.Num_quantile])
+		theta_target = tf.placeholder(tf.float32, shape = [None, self.Num_quantile])
 		action_binary_loss = tf.placeholder(tf.float32, shape = [None, self.Num_action, self.Num_quantile])
 		
-		# Get valid logits 
-		logit_valid = tf.multiply(self.logits, action_binary_loss)
-		logit_valid_nonzero = tf.reduce_sum(logit_valid, axis = 1)
+		# Get valid logits (extracting output with respect to action batch)
+		theta_pred = tf.reduce_sum(tf.multiply(self.logits, action_binary_loss), axis = 1)
 
-		theta_loss_tile = tf.tile(tf.expand_dims(theta_loss, axis=2), [1, 1, self.Num_quantile])
-		logit_valid_tile = tf.tile(tf.expand_dims(logit_valid_nonzero, axis=1), [1, self.Num_quantile, 1])
+		# Tile the target and prediction to calculate all i and j 
+		theta_target_tile = tf.tile(tf.expand_dims(theta_target, axis=2), [1, 1, self.Num_quantile])
+		theta_pred_tile   = tf.tile(tf.expand_dims(theta_pred, axis=1), [1, self.Num_quantile, 1])
 		
-		error_loss = theta_loss_tile - logit_valid_tile
+		error_loss = theta_target_tile - theta_pred_tile
 
 		# Get Huber loss
-		Huber_loss = tf.losses.huber_loss(theta_loss_tile, logit_valid_tile, reduction = tf.losses.Reduction.NONE)
+		Huber_loss = tf.losses.huber_loss(theta_target_tile, theta_pred_tile, reduction = tf.losses.Reduction.NONE)
 
 		# Get tau
 		min_tau = 1/(2*self.Num_quantile)
@@ -334,7 +334,7 @@ class QR_DQN:
 		
 		train_step = tf.train.AdamOptimizer(learning_rate = self.learning_rate, epsilon = 1e-02/self.Num_batch).minimize(Loss)
 
-		return train_step, theta_loss, action_binary_loss, Loss
+		return train_step, theta_target, action_binary_loss, Loss
 
 	def select_action(self, stacked_state):
 		action = np.zeros([self.Num_action])
@@ -424,9 +424,10 @@ class QR_DQN:
 			action_batch_max = np.argmax(action_batch[i])
 			action_binary[i, action_batch_max, :] = 1
 
+		# Training!! 
 		_, self.loss = self.sess.run([self.train_step, self.loss_train],
 										feed_dict = {self.input: state_batch, 
-													self.theta_loss: theta_target, 
+													self.theta_target: theta_target, 
 													self.action_binary_loss: action_binary})
 
 	def save_model(self):
