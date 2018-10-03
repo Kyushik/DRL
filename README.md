@@ -16,6 +16,8 @@ Also, environments, which are made by `Unity ML-agents` are in  [Unity_ML_Agent 
 * [Noisy Networks for Exploration](https://arxiv.org/abs/1706.10295) 
 * [A Distributional Perspective on Reinforcement Learning (C51)](https://arxiv.org/abs/1707.06887) 
 * [Distributional Reinforcement Learning with Quantile Regression(QR-DQN)](https://arxiv.org/abs/1710.10044)
+* [Implicit Quantile Networks for Distributional Reinforcement Learning(IQN)](https://arxiv.org/abs/1806.06923) -> Working!
+* [Curiosity-driven Exploration by Self-supervised Prediction](https://arxiv.org/abs/1705.05363)
 * [Continuous Control with Deep Reinforcement Learning](https://arxiv.org/abs/1509.02971)  -> Working! 
 
 
