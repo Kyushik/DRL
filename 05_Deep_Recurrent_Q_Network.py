@@ -60,10 +60,11 @@ class DRQN:
 		self.score = 0
 		self.episode = 0
 
-		# date - hour - minute of training time
+		# date - hour - minute - second of training time
 		self.date_time = str(datetime.date.today()) + '_' + \
-		                 str(datetime.datetime.now().hour) + '_' + \
-						 str(datetime.datetime.now().minute)
+            			 str(datetime.datetime.now().hour) + '_' + \
+						 str(datetime.datetime.now().minute) + '_' + \
+            			 str(datetime.datetime.now().second)
 
 		# parameters for skipping and stacking
 		self.state_set = []

@@ -46,10 +46,11 @@ class NoisyNet_DQN:
 		self.score = 0
 		self.episode = 0
 
-		# date - hour - minute of training time
+		# date - hour - minute - second of training time
 		self.date_time = str(datetime.date.today()) + '_' + \
-		                 str(datetime.datetime.now().hour) + '_' + \
-						 str(datetime.datetime.now().minute)
+            			 str(datetime.datetime.now().hour) + '_' + \
+						 str(datetime.datetime.now().minute) + '_' + \
+            			 str(datetime.datetime.now().second)
 
 		# parameters for skipping and stacking
 		self.state_set = []
@@ -83,6 +84,7 @@ class NoisyNet_DQN:
 		self.maxQ_board  = 0
 		self.loss_board  = 0
 		self.step_old    = 0
+		self.episode_old = 0
 
 		# Initialize Network
 		self.input, self.output, self.train_process = self.network('network')
@@ -252,13 +254,13 @@ class NoisyNet_DQN:
 	def bias_variable(self, name, shape):
 	    return tf.get_variable(name, shape = shape, initializer = tf.contrib.layers.xavier_initializer())
 
+	########################################### Noisy Network ###########################################
 	def mu_variable(self, shape):
 	    return tf.Variable(tf.random_uniform(shape, minval = -tf.sqrt(3/shape[0]), maxval = tf.sqrt(3/shape[0])))
 
 	def sigma_variable(self, shape):
 		return tf.Variable(tf.constant(0.017, shape = shape))
 
-	########################################### Noisy Network ###########################################
 	def noisy_dense(self, input_, input_shape, mu_w, sig_w, mu_b, sig_b, is_train_process):
 		eps_w = tf.cond(is_train_process, lambda: tf.random_normal(input_shape), lambda: tf.zeros(input_shape))
 		eps_b = tf.cond(is_train_process, lambda: tf.random_normal([input_shape[1]]), lambda: tf.zeros([input_shape[1]]))
@@ -417,9 +419,11 @@ class NoisyNet_DQN:
 			self.maxQ_board  += self.maxQ
 			self.loss_board  += self.loss
 
-			if self.episode % self.Num_plot_episode == 0 and self.episode != 0 and terminal:
+			if (self.episode % self.Num_plot_episode == 0 and self.episode != 0 and terminal) or self.progress == 'Finished':
 				diff_step = self.step - self.step_old
-				tensorboard_info = [self.score_board / self.Num_plot_episode, self.maxQ_board / diff_step, self.loss_board / diff_step]
+				diff_episode = self.episode - self.episode_old
+
+				tensorboard_info = [self.score_board / diff_episode, self.maxQ_board / diff_step, self.loss_board / diff_step]
 
 				for i in range(len(tensorboard_info)):
 				    self.sess.run(self.update_ops[i], feed_dict = {self.summary_placeholders[i]: float(tensorboard_info[i])})
@@ -430,6 +434,7 @@ class NoisyNet_DQN:
 				self.maxQ_board  = 0
 				self.loss_board  = 0
 				self.step_old = self.step
+				self.episode_old = self.episode
 		else:
 			self.step_old = self.step
 
