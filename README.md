@@ -6,31 +6,31 @@ This repository is the codes for `Deep Reinforcement Learning`
 
 Also, environments, which are made by `Unity ML-agents` are in  [Unity_ML_Agent Repository](https://github.com/Kyushik/Unity_ML_Agent)
 
-<br> I set up the DQN code as follows. 
-
-* [Human-level Control Through Deep Reinforcement Learning](https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf)
-* [Deep Reinforcement Learning with Double Q-Learning](https://arxiv.org/abs/1509.06461)
-* [Prioritized Experience Replay](https://arxiv.org/abs/1511.05952) 
-* [Dueling Network Architecture for Deep Reinforcement Learning](https://arxiv.org/abs/1511.06581)
-* [Deep Recurrent Q-Learning for Partially Observable MDPs](https://arxiv.org/abs/1507.06527) 
-* [Noisy Networks for Exploration](https://arxiv.org/abs/1706.10295) 
-* [A Distributional Perspective on Reinforcement Learning (C51)](https://arxiv.org/abs/1707.06887) 
-* [Distributional Reinforcement Learning with Quantile Regression(QR-DQN)](https://arxiv.org/abs/1710.10044)
-* [Implicit Quantile Networks for Distributional Reinforcement Learning(IQN)](https://arxiv.org/abs/1806.06923)
-* [Curiosity-driven Exploration by Self-supervised Prediction](https://arxiv.org/abs/1705.05363)
-* [Continuous Control with Deep Reinforcement Learning](https://arxiv.org/abs/1509.02971)  -> Working! 
-
-
-
-This is the [PPT file](https://www.dropbox.com/s/0o72oqe7f5kip4z/DQN.pdf?dl=0) for the `description of DQN codes` that I implemented. 
-
-
+<br>
 
 Performance of each algorithm that I implemented are as follows (verified with `Breakout`).  
 
 ![Performance](./Image/Performance.png)
 
 [Youtube Link of Playing Breakout with NoisyNet DQN](https://youtu.be/h8UtVZ5XCtY)
+
+
+
+ I set up the DRL code as follows. 
+
+* [Human-level Control Through Deep Reinforcement Learning (DQN)](https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf)
+* [Deep Reinforcement Learning with Double Q-Learning (DDQN)](https://arxiv.org/abs/1509.06461) 
+* [Prioritized Experience Replay (PER)](https://arxiv.org/abs/1511.05952) 
+* [Dueling Network Architecture for Deep Reinforcement Learning (Dueling DQN)](https://arxiv.org/abs/1511.06581)
+* [Deep Recurrent Q-Learning for Partially Observable MDPs (DRQN)](https://arxiv.org/abs/1507.06527) 
+* [Noisy Networks for Exploration (NoisyNet DQN)](https://arxiv.org/abs/1706.10295) 
+* [A Distributional Perspective on Reinforcement Learning (C51)](https://arxiv.org/abs/1707.06887) 
+* [Distributional Reinforcement Learning with Quantile Regression(QR-DQN)](https://arxiv.org/abs/1710.10044)
+* [Implicit Quantile Networks for Distributional Reinforcement Learning(IQN)](https://arxiv.org/abs/1806.06923)
+* [Curiosity-driven Exploration by Self-supervised Prediction (ICM)](https://arxiv.org/abs/1705.05363)
+
+
+This is the [PPT file](https://www.dropbox.com/s/0o72oqe7f5kip4z/DQN.pdf?dl=0) for the `description of DQN codes` that I implemented. 
 
 
 

@@ -31,12 +31,11 @@ class Curiosity_DQN:
 		self.Num_action = game.Return_Num_Action()
 
 		# Parameters for Curiosity-driven Exploration
-		self.beta = 0.1
+		self.beta = 0.2
 		self.lamb = 1.0
 		self.eta = 0.01
 		self.extrinsic_coeff = 1.0
 		self.intrinsic_coeff = 0.01
-		self.lr_curiousity = 1e-3
 
 		# Initial parameters
 		self.Num_Exploration = Deep_Parameters.Num_start_training
@@ -489,7 +488,7 @@ class Curiosity_DQN:
 			self.maxQ_board  += self.maxQ
 			self.loss_board  += self.loss
 
-			if (self.episode % self.Num_plot_episode == 0 and self.episode != 0 and terminal) or self.progress == 'Finished':
+			if self.episode % self.Num_plot_episode == 0 and self.episode != 0 and terminal:
 				diff_step = self.step - self.step_old
 				diff_episode = self.episode - self.episode_old
 
