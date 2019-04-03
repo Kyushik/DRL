@@ -419,7 +419,7 @@ class NoisyNet_DQN:
 			self.maxQ_board  += self.maxQ
 			self.loss_board  += self.loss
 
-			if (self.episode % self.Num_plot_episode == 0 and self.episode != 0 and terminal) or self.progress == 'Finished':
+			if self.episode % self.Num_plot_episode == 0 and self.episode != 0 and terminal:
 				diff_step = self.step - self.step_old
 				diff_episode = self.episode - self.episode_old
 
