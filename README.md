@@ -54,18 +54,19 @@ This is the [PPT file](https://www.dropbox.com/s/0o72oqe7f5kip4z/DQN.pdf?dl=0) f
 ## Environment
 **Software**
 * Windows7 (64bit)
-* Python 3.5.2
+* Python 3.6.5
 * Anaconda 4.2.0
-* Tensorflow-gpu 1.3.0
+* Tensorflow-gpu 1.12.0
 * pygame 1.9.3
 * opencv3 3.1.0
 
 **Hardware**
+
 * CPU: Intel(R) Core(TM) i7-4790K CPU @ 4.00GHZ
 
-* GPU: GeForce GTX 1080
+* GPU: GeForce GTX 1080TI
 
-* Memory: 8GB
+* Memory: 16GB
 
   <br>
 
