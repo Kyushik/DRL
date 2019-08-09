@@ -1,5 +1,3 @@
-# Deep Q-Network Algorithm
-
 # Import modules
 import tensorflow as tf
 import pygame
@@ -15,8 +13,8 @@ import os
 import sys
 sys.path.append("DQN_GAMES/")
 
-import Deep_Parameters
-game = Deep_Parameters.game
+import Parameters
+game = Parameters.game
 
 class C51:
 	def __init__(self):
@@ -36,57 +34,56 @@ class C51:
 		self.delta_z = (self.V_max - self.V_min) / (self.Num_atom - 1)
 
 		# Initial parameters
-		self.Num_Exploration = Deep_Parameters.Num_start_training
-		self.Num_Training    = Deep_Parameters.Num_training
-		self.Num_Testing     = Deep_Parameters.Num_test
+		self.Num_Exploration = Parameters.Num_start_training
+		self.Num_Training    = Parameters.Num_training
+		self.Num_Testing     = Parameters.Num_test
 
-		self.learning_rate = Deep_Parameters.Learning_rate
-		self.gamma = Deep_Parameters.Gamma
+		self.learning_rate = Parameters.Learning_rate
+		self.gamma = Parameters.Gamma
 
-		self.first_epsilon = Deep_Parameters.Epsilon
-		self.final_epsilon = Deep_Parameters.Final_epsilon
+		self.first_epsilon = Parameters.Epsilon
+		self.final_epsilon = Parameters.Final_epsilon
 
 		self.epsilon = self.first_epsilon
 
-		self.Num_plot_episode = Deep_Parameters.Num_plot_episode
+		self.Num_plot_episode = Parameters.Num_plot_episode
 
-		self.Is_train = Deep_Parameters.Is_train
-		self.load_path = Deep_Parameters.Load_path
+		self.Is_train = Parameters.Is_train
+		self.load_path = Parameters.Load_path
 
 		self.step = 1
 		self.score = 0
 		self.episode = 0
 
-		# date - hour - minute - second of training time
+		# date - hour - minute of training time
 		self.date_time = str(datetime.date.today()) + '_' + \
-            			 str(datetime.datetime.now().hour) + '_' + \
-						 str(datetime.datetime.now().minute) + '_' + \
-            			 str(datetime.datetime.now().second)
+		                 str(datetime.datetime.now().hour) + '_' + \
+						 str(datetime.datetime.now().minute)
 
 		# parameters for skipping and stacking
 		self.state_set = []
-		self.Num_skipping = Deep_Parameters.Num_skipFrame
-		self.Num_stacking = Deep_Parameters.Num_stackFrame
+		self.Num_skipping = Parameters.Num_skipFrame
+		self.Num_stacking = Parameters.Num_stackFrame
 
 		# Parameter for Experience Replay
-		self.Num_replay_memory = Deep_Parameters.Num_replay_memory
-		self.Num_batch = Deep_Parameters.Num_batch
+		self.Num_replay_memory = Parameters.Num_replay_memory
+		self.Num_batch = Parameters.Num_batch
 		self.replay_memory = []
 
 		# Parameter for Target Network
-		self.Num_update_target = Deep_Parameters.Num_update
+		self.Num_update_target = Parameters.Num_update
 
 		# Parameters for network
 		self.img_size = 80
-		self.Num_colorChannel = Deep_Parameters.Num_colorChannel
+		self.Num_colorChannel = Parameters.Num_colorChannel
 
-		self.first_conv   = Deep_Parameters.first_conv
-		self.second_conv  = Deep_Parameters.second_conv
-		self.third_conv   = Deep_Parameters.third_conv
-		self.first_dense  = Deep_Parameters.first_dense
+		self.first_conv   = Parameters.first_conv
+		self.second_conv  = Parameters.second_conv
+		self.third_conv   = Parameters.third_conv
+		self.first_dense  = Parameters.first_dense
 		self.second_dense = [self.first_dense[1], self.Num_action * self.Num_atom]
 
-		self.GPU_fraction = Deep_Parameters.GPU_fraction
+		self.GPU_fraction = Parameters.GPU_fraction
 
 		# Variables for tensorboard
 		self.loss = 0
@@ -97,8 +94,8 @@ class C51:
 		self.step_old    = 0
 
 		# Initialize Network
-		self.input, self.Q_action, self.p_action, self.z, self.logits = self.network('network')
-		self.input_target, self.Q_action_target, self.p_action_target, _, _ = self.network('target')
+		self.input, self.Q_action, self.p_action, self.z = self.network('network')
+		self.input_target, self.Q_action_target, self.p_action_target, _ = self.network('target')
 		self.train_step, self.m_loss, self.action_binary_loss, self.loss_train = self.loss_and_train()
 		self.sess, self.saver, self.summary_placeholders, self.update_ops, self.summary_op, self.summary_writer = self.init_sess()
 
@@ -157,7 +154,7 @@ class C51:
 	def init_sess(self):
 		# Initialize variables
 		config = tf.ConfigProto()
-		config.gpu_options.per_process_gpu_memory_fraction = self.GPU_fraction
+		config.gpu_options.allow_growth = True
 
 		sess = tf.InteractiveSession(config=config)
 
@@ -173,16 +170,16 @@ class C51:
 
 		# Load the file if the saved file exists
 		saver = tf.train.Saver()
-		# check_save = 1
+
 		check_save = input('Load Model? (1=yes/2=no): ')
 
-		if check_save == 1:
+		if check_save == '1':
 			# Restore variables from disk.
 			saver.restore(sess, self.load_path + "/model.ckpt")
 			print("Model restored.")
 
 			check_train = input('Inference or Training? (1=Inference / 2=Training): ')
-			if check_train == 1:
+			if check_train == '1':
 				self.Num_Exploration = 0
 				self.Num_Training = 0
 
@@ -205,7 +202,7 @@ class C51:
 
 		# Stack the frame according to the number of skipping frame
 		for stack_frame in range(self.Num_stacking):
-			state_in[:,:, self.Num_colorChannel * stack_frame : self.Num_colorChannel * (stack_frame+1)] = self.state_set[-1 - (self.Num_skipping * stack_frame)]
+			state_in[:,:,stack_frame] = self.state_set[-1 - (self.Num_skipping * stack_frame)]
 
 		del self.state_set[0]
 
@@ -230,7 +227,7 @@ class C51:
 		state_out = cv2.resize(state, (self.img_size, self.img_size))
 		if self.Num_colorChannel == 1:
 			state_out = cv2.cvtColor(state_out, cv2.COLOR_BGR2GRAY)
-			state_out = np.reshape(state_out, (self.img_size, self.img_size, 1))
+			state_out = np.reshape(state_out, (self.img_size, self.img_size))
 
 		state_out = np.uint8(state_out)
 
@@ -280,51 +277,52 @@ class C51:
 
 		with tf.variable_scope(network_name):
 			# Convolution variables
-			w_conv1 = self.conv_weight_variable('_w_conv1', self.first_conv)
-			b_conv1 = self.bias_variable('_b_conv1',[self.first_conv[3]])
+			w_conv1 = self.conv_weight_variable('w_conv1' + network_name, self.first_conv)
+			b_conv1 = self.bias_variable('b_conv1' + network_name,[self.first_conv[3]])
 
-			w_conv2 = self.conv_weight_variable('_w_conv2',self.second_conv)
-			b_conv2 = self.bias_variable('_b_conv2',[self.second_conv[3]])
+			w_conv2 = self.conv_weight_variable('w_conv2' + network_name,self.second_conv)
+			b_conv2 = self.bias_variable('b_conv2' + network_name,[self.second_conv[3]])
 
-			w_conv3 = self.conv_weight_variable('_w_conv3',self.third_conv)
-			b_conv3 = self.bias_variable('_b_conv3',[self.third_conv[3]])
+			w_conv3 = self.conv_weight_variable('w_conv3' + network_name,self.third_conv)
+			b_conv3 = self.bias_variable('b_conv3' + network_name,[self.third_conv[3]])
 
 			# Densely connect layer variables
-			w_fc1 = self.weight_variable('_w_fc1',self.first_dense)
-			b_fc1 = self.bias_variable('_b_fc1',[self.first_dense[1]])
+			w_fc1 = self.weight_variable('w_fc1' + network_name,self.first_dense)
+			b_fc1 = self.bias_variable('b_fc1' + network_name,[self.first_dense[1]])
 
-			w_fc2 = self.weight_variable('_w_fc2',self.second_dense)
-			b_fc2 = self.bias_variable('_b_fc2',[self.second_dense[1]])
+			w_fc2 = self.weight_variable('w_fc2' + network_name,self.second_dense)
+			b_fc2 = self.bias_variable('b_fc2' + network_name,[self.second_dense[1]])
 
 		# Network
 		h_conv1 = tf.nn.relu(self.conv2d(x_normalize, w_conv1, 4) + b_conv1)
 		h_conv2 = tf.nn.relu(self.conv2d(h_conv1, w_conv2, 2) + b_conv2)
 		h_conv3 = tf.nn.relu(self.conv2d(h_conv2, w_conv3, 1) + b_conv3)
 
-		h_pool3_flat = tf.reshape(h_conv3, [-1, self.first_dense[0]])
-		h_fc1 = tf.nn.relu(tf.matmul(h_pool3_flat, w_fc1)+b_fc1)
+		h_flat = tf.reshape(h_conv3, [-1, self.first_dense[0]])
+		h_fc1 = tf.nn.relu(tf.matmul(h_flat, w_fc1)+b_fc1)
 
 		# Get Q value for each action
 		logits = tf.matmul(h_fc1, w_fc2) + b_fc2
+
 		logits_reshape = tf.reshape(logits, [-1, self.Num_action, self.Num_atom])
 		p_action = tf.nn.softmax(logits_reshape)
-		Q_action = tf.reduce_sum(tf.multiply(z, p_action), axis = 2)
 
-		return x_image, Q_action, p_action, z, logits
+		z_action = tf.tile(z, [tf.shape(logits_reshape)[0] * tf.shape(logits_reshape)[1], 1])
+		z_action = tf.reshape(z_action, [-1, self.Num_action, self.Num_atom])
+
+		Q_action = tf.reduce_sum(tf.multiply(z_action, p_action), axis = 2)
+
+		return x_image, Q_action, p_action, z
 
 	def loss_and_train(self):
 		# Loss function and Train
 		m_loss = tf.placeholder(tf.float32, shape = [self.Num_batch, self.Num_atom])
-		action_binary_loss = tf.placeholder(tf.float32, shape = [None, self.Num_action * self.Num_atom])
-		
-		logit_valid = tf.multiply(self.logits, action_binary_loss)
-		logit_valid_reshape = tf.reshape(logit_valid, [-1, self.Num_action, self.Num_atom])
-		logit_valid_nonzero = tf.reduce_sum(logit_valid_reshape, axis = 1)
+		action_binary_loss = tf.placeholder(tf.float32, shape = [None, self.Num_action, self.Num_atom])
 
-		p_loss = tf.nn.softmax(logit_valid_nonzero)
+		p_loss = tf.reduce_sum(tf.multiply(self.p_action, action_binary_loss), axis=1)
 
-		Loss = - tf.reduce_mean(tf.reduce_sum(tf.multiply(m_loss, tf.log(p_loss + 1e-8)), axis = 1))
-		train_step = tf.train.AdamOptimizer(learning_rate = self.learning_rate, epsilon = 1e-02/self.Num_batch).minimize(Loss)
+		Loss = - tf.reduce_mean(tf.reduce_sum(tf.multiply(m_loss, tf.log(p_loss + 1e-20)), axis = 1))
+		train_step = tf.train.AdamOptimizer(learning_rate = self.learning_rate, epsilon = 1e-02).minimize(Loss)
 
 		return train_step, m_loss, action_binary_loss, Loss
 
@@ -439,16 +437,14 @@ class C51:
 			for j in range(self.Num_atom):
 				m_batch[i,j] = m_batch[i,j] / sum_m_batch
 
-		action_binary = np.zeros([self.Num_batch, self.Num_action * self.Num_atom])
+		action_binary = np.zeros([self.Num_batch, self.Num_action, self.Num_atom])
 
 		for i in range(len(action_batch)):
 			action_batch_max = np.argmax(action_batch[i])
-			action_binary[i, self.Num_atom * action_batch_max : self.Num_atom * (action_batch_max + 1)] = 1
+			action_binary[i, action_batch_max, :] = 1
 
 		_, self.loss = self.sess.run([self.train_step, self.loss_train],
-		                              feed_dict = {self.input: state_batch, 
-									  			   self.m_loss: m_batch, 
-												   self.action_binary_loss: action_binary})
+		                              feed_dict = {self.input: state_batch, self.m_loss: m_batch, self.action_binary_loss: action_binary})
 
 	def save_model(self):
 		# Save the variables to disk.

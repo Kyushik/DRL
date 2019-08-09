@@ -1,5 +1,3 @@
-# Deep Q-Network Algorithm
-
 # Import modules
 import tensorflow as tf
 import pygame
@@ -15,8 +13,8 @@ import os
 import sys
 sys.path.append("DQN_GAMES/")
 
-import Deep_Parameters
-game = Deep_Parameters.game
+import Parameters
+game = Parameters.game
 
 class DQN:
 	def __init__(self):
@@ -30,22 +28,22 @@ class DQN:
 		self.Num_action = game.Return_Num_Action()
 
 		# Initial parameters
-		self.Num_Exploration = Deep_Parameters.Num_start_training
-		self.Num_Training    = Deep_Parameters.Num_training
-		self.Num_Testing     = Deep_Parameters.Num_test
+		self.Num_Exploration = Parameters.Num_start_training
+		self.Num_Training    = Parameters.Num_training
+		self.Num_Testing     = Parameters.Num_test
 
-		self.learning_rate = Deep_Parameters.Learning_rate
-		self.gamma = Deep_Parameters.Gamma
+		self.learning_rate = Parameters.Learning_rate
+		self.gamma = Parameters.Gamma
 
-		self.first_epsilon = Deep_Parameters.Epsilon
-		self.final_epsilon = Deep_Parameters.Final_epsilon
+		self.first_epsilon = Parameters.Epsilon
+		self.final_epsilon = Parameters.Final_epsilon
 
 		self.epsilon = self.first_epsilon
 
-		self.Num_plot_episode = Deep_Parameters.Num_plot_episode
+		self.Num_plot_episode = Parameters.Num_plot_episode
 
-		self.Is_train = Deep_Parameters.Is_train
-		self.load_path = Deep_Parameters.Load_path
+		self.Is_train = Parameters.Is_train
+		self.load_path = Parameters.Load_path
 
 		self.step = 1
 		self.score = 0
@@ -59,28 +57,28 @@ class DQN:
 
 		# parameters for skipping and stacking
 		self.state_set = []
-		self.Num_skipping = Deep_Parameters.Num_skipFrame
-		self.Num_stacking = Deep_Parameters.Num_stackFrame
+		self.Num_skipping = Parameters.Num_skipFrame
+		self.Num_stacking = Parameters.Num_stackFrame
 
 		# Parameter for Experience Replay
-		self.Num_replay_memory = Deep_Parameters.Num_replay_memory
-		self.Num_batch = Deep_Parameters.Num_batch
+		self.Num_replay_memory = Parameters.Num_replay_memory
+		self.Num_batch = Parameters.Num_batch
 		self.replay_memory = []
 
 		# Parameter for Target Network
-		self.Num_update_target = Deep_Parameters.Num_update
+		self.Num_update_target = Parameters.Num_update
 
 		# Parameters for network
 		self.img_size = 80
-		self.Num_colorChannel = Deep_Parameters.Num_colorChannel
+		self.Num_colorChannel = Parameters.Num_colorChannel
 
-		self.first_conv   = Deep_Parameters.first_conv
-		self.second_conv  = Deep_Parameters.second_conv
-		self.third_conv   = Deep_Parameters.third_conv
-		self.first_dense  = Deep_Parameters.first_dense
-		self.second_dense = Deep_Parameters.second_dense
+		self.first_conv   = Parameters.first_conv
+		self.second_conv  = Parameters.second_conv
+		self.third_conv   = Parameters.third_conv
+		self.first_dense  = Parameters.first_dense
+		self.second_dense = Parameters.second_dense
 
-		self.GPU_fraction = Deep_Parameters.GPU_fraction
+		self.GPU_fraction = Parameters.GPU_fraction
 
 		# Variables for tensorboard
 		self.loss = 0
@@ -151,7 +149,7 @@ class DQN:
 	def init_sess(self):
 		# Initialize variables
 		config = tf.ConfigProto()
-		config.gpu_options.per_process_gpu_memory_fraction = self.GPU_fraction
+		config.gpu_options.allow_growth = True
 
 		sess = tf.InteractiveSession(config=config)
 
@@ -167,7 +165,7 @@ class DQN:
 
 		# Load the file if the saved file exists
 		saver = tf.train.Saver()
-		# check_save = 1
+
 		check_save = input('Load Model? (1=yes/2=no): ')
 
 		if check_save == '1':
@@ -293,8 +291,8 @@ class DQN:
 		h_conv2 = tf.nn.relu(self.conv2d(h_conv1, w_conv2, 2) + b_conv2)
 		h_conv3 = tf.nn.relu(self.conv2d(h_conv2, w_conv3, 1) + b_conv3)
 
-		h_pool3_flat = tf.reshape(h_conv3, [-1, self.first_dense[0]])
-		h_fc1 = tf.nn.relu(tf.matmul(h_pool3_flat, w_fc1)+b_fc1)
+		h_flat = tf.reshape(h_conv3, [-1, self.first_dense[0]])
+		h_fc1 = tf.nn.relu(tf.matmul(h_flat, w_fc1)+b_fc1)
 
 		output = tf.matmul(h_fc1, w_fc2) + b_fc2
 		return x_image, output

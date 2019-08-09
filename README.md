@@ -29,7 +29,7 @@ Performance of each algorithm that I implemented are as follows (verified with `
 5. [Noisy Networks for Exploration (NoisyNet DQN)](https://arxiv.org/abs/1706.10295) 
 
 6. [A Distributional Perspective on Reinforcement Learning (C51)](https://arxiv.org/abs/1707.06887) 
-7. [Learning to Predict by the Methods of Temporal Differences](http://incompleteideas.net/papers/sutton-88-with-erratum.pdf)
+7. [Learning to Predict by the Methods of Temporal Differences (N-step DQN)](http://incompleteideas.net/papers/sutton-88-with-erratum.pdf) 
 
 8. [Deep Recurrent Q-Learning for Partially Observable MDPs (DRQN)](https://arxiv.org/abs/1507.06527) 
 

@@ -1,5 +1,3 @@
-# Deep Q-Network Algorithm
-
 # Import modules
 import tensorflow as tf
 import pygame
@@ -15,46 +13,45 @@ import os
 import sys
 sys.path.append("DQN_GAMES/")
 
-import Deep_Parameters
-game = Deep_Parameters.game
+import Parameters
+game = Parameters.game
 
-class DRQN:
+class IQN:
 	def __init__(self):
 
 		# Game Information
-		self.algorithm = 'DRQN'
+		self.algorithm = 'IQN'
 		self.game_name = game.ReturnName()
 
 		# Get parameters
 		self.progress = ''
 		self.Num_action = game.Return_Num_Action()
 
-		# Parameters for DRQN
-		self.Num_replay_episode = 500
-		self.step_size = 6
-		self.lstm_size = 400
-		self.flatten_size = 10*10*64
+		# Parameter for IQN
+		self.Num_quantile = 51
+		self.embedding_dim = 64
 
-		self.episode_memory  = []
+		# Parameter for risk sensitive policy
+		self.sample_min = 0.0
+		self.sample_max = 1.0
 
 		# Initial parameters
-		self.Num_Exploration = Deep_Parameters.Num_start_training
-		# self.Num_Exploration = 10000
-		self.Num_Training    = Deep_Parameters.Num_training
-		self.Num_Testing     = Deep_Parameters.Num_test
+		self.Num_Exploration = Parameters.Num_start_training
+		self.Num_Training    = Parameters.Num_training
+		self.Num_Testing     = Parameters.Num_test
 
-		self.learning_rate = Deep_Parameters.Learning_rate
-		self.gamma = Deep_Parameters.Gamma
+		self.learning_rate = 0.00005
+		self.gamma = Parameters.Gamma
 
-		self.first_epsilon = Deep_Parameters.Epsilon
-		self.final_epsilon = Deep_Parameters.Final_epsilon
+		self.first_epsilon = Parameters.Epsilon
+		self.final_epsilon = Parameters.Final_epsilon
 
 		self.epsilon = self.first_epsilon
 
-		self.Num_plot_episode = Deep_Parameters.Num_plot_episode
+		self.Num_plot_episode = Parameters.Num_plot_episode
 
-		self.Is_train = Deep_Parameters.Is_train
-		self.load_path = Deep_Parameters.Load_path
+		self.Is_train = Parameters.Is_train
+		self.load_path = Parameters.Load_path
 
 		self.step = 1
 		self.score = 0
@@ -68,38 +65,46 @@ class DRQN:
 
 		# parameters for skipping and stacking
 		self.state_set = []
-		self.Num_skipping = Deep_Parameters.Num_skipFrame
+		self.Num_skipping = Parameters.Num_skipFrame
+		self.Num_stacking = Parameters.Num_stackFrame
 
 		# Parameter for Experience Replay
-		self.Num_batch = Deep_Parameters.Num_batch
+		self.Num_replay_memory = Parameters.Num_replay_memory
+		self.Num_batch = Parameters.Num_batch
 		self.replay_memory = []
 
 		# Parameter for Target Network
-		self.Num_update_target = Deep_Parameters.Num_update
+		self.Num_update_target = Parameters.Num_update
 
 		# Parameters for network
 		self.img_size = 80
-		self.Num_colorChannel = Deep_Parameters.Num_colorChannel
+		self.Num_colorChannel = Parameters.Num_colorChannel
 
-		self.first_conv   = [8,8,self.Num_colorChannel,32]
-		self.second_conv  = Deep_Parameters.second_conv
-		self.third_conv   = Deep_Parameters.third_conv
-		self.first_dense  = [self.lstm_size, self.Num_action]
+		self.first_conv   = Parameters.first_conv
+		self.second_conv  = Parameters.second_conv
+		self.third_conv   = Parameters.third_conv
+		self.first_dense  = Parameters.first_dense
+		self.second_dense = [self.first_dense[1], self.Num_action]
 
-		self.GPU_fraction = Deep_Parameters.GPU_fraction
+		self.embedding_fc = [self.embedding_dim, self.first_dense[0]]
+
+		self.GPU_fraction = Parameters.GPU_fraction
 
 		# Variables for tensorboard
 		self.loss = 0
 		self.maxQ = 0
+
 		self.score_board = 0
 		self.maxQ_board  = 0
 		self.loss_board  = 0
+
 		self.step_old    = 0
+		self.episode_old = 0
 
 		# Initialize Network
-		self.input, self.output, self.rnn_batch_size, self.rnn_step_size = self.network('network')
-		self.input_target, self.output_target, self.rnn_batch_size_target, self.rnn_step_size_target = self.network('target')
-		self.train_step, self.action_target, self.y_target, self.loss_train = self.loss_and_train()
+		self.input, self.Q_action, self.logits, self.sample = self.network('network')
+		self.input_target, self.Q_action_target, self.logits_target, _ = self.network('target')
+		self.train_step, self.theta_target, self.action_binary_loss, self.loss_train = self.loss_and_train()
 		self.sess, self.saver, self.summary_placeholders, self.update_ops, self.summary_op, self.summary_writer = self.init_sess()
 
 	def main(self):
@@ -108,22 +113,22 @@ class DRQN:
 
 		# Initialization
 		state = self.initialization(game_state)
-		# stacked_state = self.skip_and_stack_frame(state)
+		stacked_state = self.skip_and_stack_frame(state)
 
 		while True:
 			# Get progress:
 			self.progress = self.get_progress()
 
 			# Select action
-			action = self.select_action(state)
+			action = self.select_action(stacked_state)
 
 			# Take action and get info. for update
 			next_state, reward, terminal = game_state.frame_step(action)
 			next_state = self.reshape_input(next_state)
-			# stacked_next_state = self.skip_and_stack_frame(next_state)
+			stacked_next_state = self.skip_and_stack_frame(next_state)
 
 			# Experience Replay
-			self.experience_replay(state, action, reward, next_state, terminal)
+			self.experience_replay(stacked_state, action, reward, stacked_next_state, terminal)
 
 			# Training!
 			if self.progress == 'Training':
@@ -138,13 +143,7 @@ class DRQN:
 				self.save_model()
 
 			# Update former info.
-			state = next_state
-
-			self.state_set.append(state)
-
-			if len(self.state_set) > self.step_size:
-				del self.state_set[0]
-
+			stacked_state = stacked_next_state
 			self.score += reward
 			self.step += 1
 
@@ -153,7 +152,7 @@ class DRQN:
 
 			# If game is over (terminal)
 			if terminal:
-				state = self.if_terminal(game_state)
+				stacked_state = self.if_terminal(game_state)
 
 			# Finished!
 			if self.progress == 'Finished':
@@ -163,7 +162,7 @@ class DRQN:
 	def init_sess(self):
 		# Initialize variables
 		config = tf.ConfigProto()
-		config.gpu_options.per_process_gpu_memory_fraction = self.GPU_fraction
+		config.gpu_options.allow_growth = True
 
 		sess = tf.InteractiveSession(config=config)
 
@@ -199,11 +198,24 @@ class DRQN:
 		state, _, _ = game_state.frame_step(action)
 		state = self.reshape_input(state)
 
-		self.state_set = []
-		for i in range(self.step_size):
+		for i in range(self.Num_skipping * self.Num_stacking):
 			self.state_set.append(state)
 
 		return state
+
+	def skip_and_stack_frame(self, state):
+		self.state_set.append(state)
+
+		state_in = np.zeros((self.img_size, self.img_size, self.Num_colorChannel * self.Num_stacking))
+
+		# Stack the frame according to the number of skipping frame
+		for stack_frame in range(self.Num_stacking):
+			state_in[:,:, self.Num_colorChannel * stack_frame : self.Num_colorChannel * (stack_frame+1)] = self.state_set[-1 - (self.Num_skipping * stack_frame)]
+
+		del self.state_set[0]
+
+		state_in = np.uint8(state_in)
+		return state_in
 
 	def get_progress(self):
 		progress = ''
@@ -265,11 +277,15 @@ class DRQN:
 		x_image = tf.placeholder(tf.float32, shape = [None,
 													  self.img_size,
 													  self.img_size,
-													  self.Num_colorChannel])
+													  self.Num_stacking * self.Num_colorChannel])
 
 		x_normalize = (x_image - (255.0/2)) / (255.0/2)
 
 		with tf.variable_scope(network_name):
+			# Embedding weight and bias 
+			w_embedding = self.weight_variable('w_embedding',self.embedding_fc)
+			b_embedding = self.bias_variable('b_embedding',self.embedding_fc[1])
+			
 			# Convolution variables
 			w_conv1 = self.conv_weight_variable('_w_conv1', self.first_conv)
 			b_conv1 = self.bias_variable('_b_conv1',[self.first_conv[3]])
@@ -284,41 +300,67 @@ class DRQN:
 			w_fc1 = self.weight_variable('_w_fc1',self.first_dense)
 			b_fc1 = self.bias_variable('_b_fc1',[self.first_dense[1]])
 
-			# LSTM cell
-			cell = tf.contrib.rnn.BasicLSTMCell(num_units = self.lstm_size)
+			w_fc2 = self.weight_variable('_w_fc2',self.second_dense)
+			b_fc2 = self.bias_variable('_b_fc2',[self.second_dense[1]])
 
-			# Network
-			h_conv1 = tf.nn.relu(self.conv2d(x_normalize, w_conv1, 4) + b_conv1)
-			h_conv2 = tf.nn.relu(self.conv2d(h_conv1, w_conv2, 2) + b_conv2)
-			h_conv3 = tf.nn.relu(self.conv2d(h_conv2, w_conv3, 1) + b_conv3)
+		# Embedding 
+		batch_size = tf.shape(x_normalize)[0]
+		sample = tf.random_uniform([batch_size * self.Num_quantile, 1], minval = self.sample_min, maxval = self.sample_max, dtype = tf.float32)
+		sample_tile = tf.tile(sample, [1, self.embedding_dim])
 
-			rnn_batch_size = tf.placeholder(dtype = tf.int32)
-			rnn_step_size  = tf.placeholder(dtype = tf.int32)
+		embedding = tf.cos(tf.cast(tf.range(0, self.embedding_dim, 1), tf.float32) * np.pi * sample_tile)
+		embedding_out = tf.nn.relu(tf.matmul(embedding, w_embedding)+b_embedding)
 
-			h_pool3_flat = tf.reshape(h_conv3, [rnn_batch_size, rnn_step_size , self.flatten_size])
+		# Network
+		h_conv1 = tf.nn.relu(self.conv2d(x_normalize, w_conv1, 4) + b_conv1)
+		h_conv2 = tf.nn.relu(self.conv2d(h_conv1, w_conv2, 2) + b_conv2)
+		h_conv3 = tf.nn.relu(self.conv2d(h_conv2, w_conv3, 1) + b_conv3)
 
-			rnn_out, rnn_state = tf.nn.dynamic_rnn(inputs = h_pool3_flat, cell = cell, dtype = tf.float32)
+		h_flat = tf.reshape(h_conv3, [-1, self.first_dense[0]])
 
-		# Vectorization
-		rnn_out = rnn_out[:, -1, :]
-		rnn_out = tf.reshape(rnn_out, shape = [rnn_batch_size, -1])
+		# Embedding
+		h_flat_tile = tf.tile(h_flat, [self.Num_quantile, 1])
+		h_flat_embedding = tf.multiply(h_flat_tile, embedding_out)
 
-		output = tf.matmul(rnn_out, w_fc1) + b_fc1
+		h_fc1 = tf.nn.relu(tf.matmul(h_flat_embedding, w_fc1)+b_fc1)
 
-		return x_image, output, rnn_batch_size, rnn_step_size
+		# Get Q value for each action
+		logits = tf.matmul(h_fc1, w_fc2) + b_fc2
+		logits_reshape = tf.reshape(logits, [self.Num_quantile, batch_size, self.Num_action])
+		Q_action = tf.reduce_mean(logits_reshape, axis = 0)
+
+		return x_image, Q_action, logits_reshape, sample
 
 	def loss_and_train(self):
 		# Loss function and Train
-		action_target = tf.placeholder(tf.float32, shape = [None, self.Num_action])
-		y_target = tf.placeholder(tf.float32, shape = [None])
+		theta_target = tf.placeholder(tf.float32, shape = [None, self.Num_quantile])
+		action_binary_loss = tf.placeholder(tf.float32, shape = [self.Num_quantile, None, self.Num_action])
+		
+		# Get valid logits (extracting output with respect to action batch)
+		theta_pred = tf.reduce_sum(tf.multiply(self.logits, action_binary_loss), axis = 2)
 
-		y_prediction = tf.reduce_sum(tf.multiply(self.output, action_target), reduction_indices = 1)
-		Loss = tf.reduce_mean(tf.square(y_prediction - y_target))
-		train_step = tf.train.AdamOptimizer(learning_rate = self.learning_rate, epsilon = 1e-02).minimize(Loss)
+		# Tile the target and prediction to calculate all i and j 
+		theta_target_tile = tf.tile(tf.expand_dims(theta_target, axis=0), [self.Num_quantile, 1, 1])
+		theta_pred_tile   = tf.tile(tf.expand_dims(theta_pred, axis=2), [1, 1, self.Num_quantile])
+		
+		error_loss = theta_target_tile - theta_pred_tile
 
-		return train_step, action_target, y_target, Loss
+		# Get Huber loss
+		Huber_loss = tf.losses.huber_loss(theta_target_tile, theta_pred_tile, reduction = tf.losses.Reduction.NONE)
 
-	def select_action(self, state):
+		# Get tau
+		tau = tf.reshape (self.sample, [self.Num_quantile, -1, 1])
+		inv_tau = 1.0 - tau 
+
+		# Get Loss
+		Loss = tf.where(tf.less(error_loss, 0.0), inv_tau * Huber_loss, tau * Huber_loss)
+		Loss = tf.reduce_mean(tf.reduce_sum(tf.reduce_mean(Loss, axis = 0), axis = 1))
+		
+		train_step = tf.train.AdamOptimizer(learning_rate = self.learning_rate, epsilon = 1e-02/self.Num_batch).minimize(Loss)
+
+		return train_step, theta_target, action_binary_loss, Loss
+
+	def select_action(self, stacked_state):
 		action = np.zeros([self.Num_action])
 		action_index = 0
 
@@ -335,7 +377,7 @@ class DRQN:
 				action[action_index] = 1
 			else:
 				# Choose greedy action
-				Q_value = self.output.eval(feed_dict={self.input: self.state_set, self.rnn_batch_size: 1, self.rnn_step_size: self.step_size})
+				Q_value = self.Q_action.eval(feed_dict={self.input: [stacked_state]})
 				action_index = np.argmax(Q_value)
 				action[action_index] = 1
 				self.maxQ = np.max(Q_value)
@@ -346,7 +388,7 @@ class DRQN:
 
 		elif self.progress == 'Testing':
 			# Choose greedy action
-			Q_value = self.output.eval(feed_dict={self.input: self.state_set, self.rnn_batch_size: 1, self.rnn_step_size: self.step_size})
+			Q_value = self.Q_action.eval(feed_dict={self.input: [stacked_state]})
 			action_index = np.argmax(Q_value)
 			action[action_index] = 1
 			self.maxQ = np.max(Q_value)
@@ -357,11 +399,10 @@ class DRQN:
 
 	def experience_replay(self, state, action, reward, next_state, terminal):
 		# If Replay memory is longer than Num_replay_memory, delete the oldest one
-		if len(self.replay_memory) >= self.Num_replay_episode:
+		if len(self.replay_memory) >= self.Num_replay_memory:
 			del self.replay_memory[0]
 
-		self.episode_memory.append([state, action, reward, next_state, terminal])
-
+		self.replay_memory.append([state, action, reward, next_state, terminal])
 
 	def update_target(self):
 		# Get trainable variables
@@ -377,20 +418,7 @@ class DRQN:
 
 	def train(self, replay_memory):
 		# Select minibatch
-		episode_batch = random.sample(replay_memory, self.Num_batch)
-
-		minibatch = []
-		batch_end_index = []
-		count_minibatch = 0
-
-		for episode_ in episode_batch:
-			episode_start = np.random.randint(0, len(episode_) + 1 - (self.step_size))
-			for step_ in range(self.step_size):
-				minibatch.append(episode_[episode_start + step_])
-				if step_ == self.step_size - 1:
-					batch_end_index.append(count_minibatch)
-
-				count_minibatch += 1
+		minibatch =  random.sample(replay_memory, self.Num_batch)
 
 		# Save the each batch data
 		state_batch      = [batch[0] for batch in minibatch]
@@ -399,27 +427,32 @@ class DRQN:
 		next_state_batch = [batch[3] for batch in minibatch]
 		terminal_batch   = [batch[4] for batch in minibatch]
 
-		# Get y_target
-		y_batch = []
-		action_in = []
+		# Get Target
+		Q_batch = self.Q_action.eval(feed_dict = {self.input: next_state_batch})
+		theta_batch = self.logits_target.eval(feed_dict = {self.input_target: next_state_batch})
 
-		Q_batch = self.output_target.eval(feed_dict = {self.input_target: next_state_batch,
-		    										   self.rnn_batch_size_target: self.Num_batch,
-													   self.rnn_step_size_target: self.step_size})
+		theta_target = []
 
-		for count, i in enumerate(batch_end_index):
-			action_in.append(action_batch[i])
-			if terminal_batch[i] == True:
-				y_batch.append(reward_batch[i])
-			else:
-				y_batch.append(reward_batch[i] + self.gamma * np.max(Q_batch[count]))
+		for i in range(len(minibatch)):
+			theta_target.append([])
+			for j in range(self.Num_quantile):
+				if terminal_batch[i] == True:
+					theta_target[i].append(reward_batch[i])
+				else:
+					theta_target[i].append(reward_batch[i] + self.gamma * theta_batch[j, i, np.argmax(Q_batch[i])])
 
-		_, self.loss = self.sess.run([self.train_step, self.loss_train], feed_dict = {self.action_target: action_in,
-																					  self.y_target: y_batch,
-																					  self.input: state_batch,
-																					  self.rnn_batch_size: self.Num_batch,
-																					  self.rnn_step_size: self.step_size})
+		# Calculate action binary
+		action_binary = np.zeros([self.Num_quantile, self.Num_batch, self.Num_action])
 
+		for i in range(len(action_batch)):
+			action_batch_max = np.argmax(action_batch[i])
+			action_binary[:, i, action_batch_max] = 1
+
+		# Training!! 
+		_, self.loss = self.sess.run([self.train_step, self.loss_train],
+										feed_dict = {self.input: state_batch, 
+													self.theta_target: theta_target, 
+													self.action_binary_loss: action_binary})
 
 	def save_model(self):
 		# Save the variables to disk.
@@ -435,9 +468,11 @@ class DRQN:
 			self.maxQ_board  += self.maxQ
 			self.loss_board  += self.loss
 
-			if self.episode % self.Num_plot_episode == 0 and self.episode != 0 and terminal:
+			if (self.episode % self.Num_plot_episode == 0 and self.episode != 0 and terminal) or self.progress == 'Finished':
 				diff_step = self.step - self.step_old
-				tensorboard_info = [self.score_board / self.Num_plot_episode, self.maxQ_board / diff_step, self.loss_board / diff_step]
+				diff_episode = self.episode - self.episode_old
+
+				tensorboard_info = [self.score_board / diff_episode, self.maxQ_board / diff_step, self.loss_board / diff_step]
 
 				for i in range(len(tensorboard_info)):
 				    self.sess.run(self.update_ops[i], feed_dict = {self.summary_placeholders[i]: float(tensorboard_info[i])})
@@ -447,7 +482,9 @@ class DRQN:
 				self.score_board = 0
 				self.maxQ_board  = 0
 				self.loss_board  = 0
+
 				self.step_old = self.step
+				self.episode_old = self.episode
 		else:
 			self.step_old = self.step
 
@@ -463,17 +500,12 @@ class DRQN:
 			self.episode += 1
 		self.score = 0
 
-		# Append episode memory to replay memory
-		if len(self.episode_memory) > self.step_size:
-			self.replay_memory.append(self.episode_memory)
-		self.episode_memory = []
-
 		# If game is finished, initialize the state
 		state = self.initialization(game_state)
-		# stacked_state = self.skip_and_stack_frame(state)
+		stacked_state = self.skip_and_stack_frame(state)
 
-		return state
+		return stacked_state
 
 if __name__ == '__main__':
-	agent = DRQN()
+	agent = IQN()
 	agent.main()

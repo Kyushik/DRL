@@ -1,5 +1,3 @@
-# Deep Q-Network Algorithm
-
 # Import modules
 import tensorflow as tf
 import pygame
@@ -15,8 +13,8 @@ import os
 import sys
 sys.path.append("DQN_GAMES/")
 
-import Deep_Parameters
-game = Deep_Parameters.game
+import Parameters
+game = Parameters.game
 
 class NoisyNet_DQN:
 	def __init__(self):
@@ -30,17 +28,17 @@ class NoisyNet_DQN:
 		self.Num_action = game.Return_Num_Action()
 
 		# Initial parameters
-		self.Num_Exploration = Deep_Parameters.Num_start_training
-		self.Num_Training    = Deep_Parameters.Num_training
-		self.Num_Testing     = Deep_Parameters.Num_test
+		self.Num_Exploration = Parameters.Num_start_training
+		self.Num_Training    = Parameters.Num_training
+		self.Num_Testing     = Parameters.Num_test
 
-		self.learning_rate = Deep_Parameters.Learning_rate
-		self.gamma = Deep_Parameters.Gamma
+		self.learning_rate = Parameters.Learning_rate
+		self.gamma = Parameters.Gamma
 
-		self.Num_plot_episode = Deep_Parameters.Num_plot_episode
+		self.Num_plot_episode = Parameters.Num_plot_episode
 
-		self.Is_train = Deep_Parameters.Is_train
-		self.load_path = Deep_Parameters.Load_path
+		self.Is_train = Parameters.Is_train
+		self.load_path = Parameters.Load_path
 
 		self.step = 1
 		self.score = 0
@@ -54,28 +52,26 @@ class NoisyNet_DQN:
 
 		# parameters for skipping and stacking
 		self.state_set = []
-		self.Num_skipping = Deep_Parameters.Num_skipFrame
-		self.Num_stacking = Deep_Parameters.Num_stackFrame
+		self.Num_skipping = Parameters.Num_skipFrame
+		self.Num_stacking = Parameters.Num_stackFrame
 
 		# Parameter for Experience Replay
-		self.Num_replay_memory = Deep_Parameters.Num_replay_memory
-		self.Num_batch = Deep_Parameters.Num_batch
+		self.Num_replay_memory = Parameters.Num_replay_memory
+		self.Num_batch = Parameters.Num_batch
 		self.replay_memory = []
 
 		# Parameter for Target Network
-		self.Num_update_target = Deep_Parameters.Num_update
+		self.Num_update_target = Parameters.Num_update
 
 		# Parameters for network
 		self.img_size = 80
-		self.Num_colorChannel = Deep_Parameters.Num_colorChannel
+		self.Num_colorChannel = Parameters.Num_colorChannel
 
-		self.first_conv   = Deep_Parameters.first_conv
-		self.second_conv  = Deep_Parameters.second_conv
-		self.third_conv   = Deep_Parameters.third_conv
-		self.first_dense  = Deep_Parameters.first_dense
-		self.second_dense = Deep_Parameters.second_dense
-
-		self.GPU_fraction = Deep_Parameters.GPU_fraction
+		self.first_conv   = Parameters.first_conv
+		self.second_conv  = Parameters.second_conv
+		self.third_conv   = Parameters.third_conv
+		self.first_dense  = Parameters.first_dense
+		self.second_dense = Parameters.second_dense
 
 		# Variables for tensorboard
 		self.loss = 0
@@ -147,7 +143,7 @@ class NoisyNet_DQN:
 	def init_sess(self):
 		# Initialize variables
 		config = tf.ConfigProto()
-		config.gpu_options.per_process_gpu_memory_fraction = self.GPU_fraction
+		config.gpu_options.allow_growth = True
 
 		sess = tf.InteractiveSession(config=config)
 
@@ -313,10 +309,10 @@ class NoisyNet_DQN:
 		h_conv2 = tf.nn.relu(self.conv2d(h_conv1, w_conv2, 2) + b_conv2)
 		h_conv3 = tf.nn.relu(self.conv2d(h_conv2, w_conv3, 1) + b_conv3)
 
-		h_pool3_flat = tf.reshape(h_conv3, [-1, self.first_dense[0]])
+		h_flat = tf.reshape(h_conv3, [-1, self.first_dense[0]])
 
 		########################################### Noisy Network ###########################################
-		h_fc1 = tf.nn.relu(self.noisy_dense(h_pool3_flat, self.first_dense, mu_w1, sig_w1, mu_b1, sig_b1, train_process))
+		h_fc1 = tf.nn.relu(self.noisy_dense(h_flat, self.first_dense, mu_w1, sig_w1, mu_b1, sig_b1, train_process))
 		output = self.noisy_dense(h_fc1, self.second_dense, mu_w2, sig_w2, mu_b2, sig_b2, train_process)
 		#####################################################################################################
 
@@ -419,7 +415,7 @@ class NoisyNet_DQN:
 			self.maxQ_board  += self.maxQ
 			self.loss_board  += self.loss
 
-			if self.episode % self.Num_plot_episode == 0 and self.episode != 0 and terminal:
+			if (self.episode % self.Num_plot_episode == 0 and self.episode != 0 and terminal) or self.progress == 'Finished':
 				diff_step = self.step - self.step_old
 				diff_episode = self.episode - self.episode_old
 

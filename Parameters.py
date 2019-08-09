@@ -4,12 +4,13 @@ import sys
 sys.path.append("DQN_GAMES/")
 
 # Action Num
-import pong
+import pong 
 import dot
-import dot_test
-import tetris
-import wormy
+import dot_test 
+import tetris 
+import wormy 
 import breakout as game
+import dodge 
 
 Gamma = 0.99
 Learning_rate = 0.00025
@@ -18,10 +19,10 @@ Final_epsilon = 0.1
 
 Num_action = game.Return_Num_Action()
 
-Num_replay_memory = 50000
+Num_replay_memory = 100000
 Num_start_training = 50000
 Num_training = 500000
-Num_update = 5000
+Num_update = Num_training/100
 Num_batch = 32
 Num_test = 250000
 Num_skipFrame = 4
@@ -30,7 +31,7 @@ Num_colorChannel = 1
 
 Num_plot_episode = 50
 
-GPU_fraction = 0.2
+GPU_fraction = 0.3
 Is_train = True
 Load_path = ''
 

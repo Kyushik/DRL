@@ -1,5 +1,3 @@
-# Deep Q-Network Algorithm
-
 # Import modules
 import tensorflow as tf
 import pygame
@@ -15,8 +13,8 @@ import os
 import sys
 sys.path.append("DQN_GAMES/")
 
-import Deep_Parameters
-game = Deep_Parameters.game
+import Parameters
+game = Parameters.game
 
 class Dueling_DQN:
 	def __init__(self):
@@ -30,22 +28,22 @@ class Dueling_DQN:
 		self.Num_action = game.Return_Num_Action()
 
 		# Initial parameters
-		self.Num_Exploration = Deep_Parameters.Num_start_training
-		self.Num_Training    = Deep_Parameters.Num_training
-		self.Num_Testing     = Deep_Parameters.Num_test
+		self.Num_Exploration = Parameters.Num_start_training
+		self.Num_Training    = Parameters.Num_training
+		self.Num_Testing     = Parameters.Num_test
 
-		self.learning_rate = Deep_Parameters.Learning_rate
-		self.gamma = Deep_Parameters.Gamma
+		self.learning_rate = Parameters.Learning_rate
+		self.gamma = Parameters.Gamma
 
-		self.first_epsilon = Deep_Parameters.Epsilon
-		self.final_epsilon = Deep_Parameters.Final_epsilon
+		self.first_epsilon = Parameters.Epsilon
+		self.final_epsilon = Parameters.Final_epsilon
 
 		self.epsilon = self.first_epsilon
 
-		self.Num_plot_episode = Deep_Parameters.Num_plot_episode
+		self.Num_plot_episode = Parameters.Num_plot_episode
 
-		self.Is_train = Deep_Parameters.Is_train
-		self.load_path = Deep_Parameters.Load_path
+		self.Is_train = Parameters.Is_train
+		self.load_path = Parameters.Load_path
 
 		self.step = 1
 		self.score = 0
@@ -59,29 +57,27 @@ class Dueling_DQN:
 
 		# parameters for skipping and stacking
 		self.state_set = []
-		self.Num_skipping = Deep_Parameters.Num_skipFrame
-		self.Num_stacking = Deep_Parameters.Num_stackFrame
+		self.Num_skipping = Parameters.Num_skipFrame
+		self.Num_stacking = Parameters.Num_stackFrame
 
 		# Parameter for Experience Replay
-		self.Num_replay_memory = Deep_Parameters.Num_replay_memory
-		self.Num_batch = Deep_Parameters.Num_batch
+		self.Num_replay_memory = Parameters.Num_replay_memory
+		self.Num_batch = Parameters.Num_batch
 		self.replay_memory = []
 
 		# Parameter for Target Network
-		self.Num_update_target = Deep_Parameters.Num_update
+		self.Num_update_target = Parameters.Num_update
 
 		# Parameters for network
 		self.img_size = 80
-		self.Num_colorChannel = Deep_Parameters.Num_colorChannel
+		self.Num_colorChannel = Parameters.Num_colorChannel
 
-		self.first_conv   = Deep_Parameters.first_conv
-		self.second_conv  = Deep_Parameters.second_conv
-		self.third_conv   = Deep_Parameters.third_conv
-		self.first_dense  = Deep_Parameters.first_dense
+		self.first_conv   = Parameters.first_conv
+		self.second_conv  = Parameters.second_conv
+		self.third_conv   = Parameters.third_conv
+		self.first_dense  = Parameters.first_dense
 		self.second_dense_state  = [self.first_dense[1], 1]
 		self.second_dense_action = [self.first_dense[1], self.Num_action]
-
-		self.GPU_fraction = Deep_Parameters.GPU_fraction
 
 		# Variables for tensorboard
 		self.loss = 0
@@ -152,7 +148,7 @@ class Dueling_DQN:
 	def init_sess(self):
 		# Initialize variables
 		config = tf.ConfigProto()
-		config.gpu_options.per_process_gpu_memory_fraction = self.GPU_fraction
+		config.gpu_options.allow_growth = True
 
 		sess = tf.InteractiveSession(config=config)
 
@@ -300,9 +296,10 @@ class Dueling_DQN:
 		h_conv2 = tf.nn.relu(self.conv2d(h_conv1, w_conv2, 2) + b_conv2)
 		h_conv3 = tf.nn.relu(self.conv2d(h_conv2, w_conv3, 1) + b_conv3)
 
-		h_pool3_flat = tf.reshape(h_conv3, [-1, self.first_dense[0]])
-		h_fc1_state  = tf.nn.relu(tf.matmul(h_pool3_flat, w_fc1_1)+b_fc1_1)
-		h_fc1_action = tf.nn.relu(tf.matmul(h_pool3_flat, w_fc1_2)+b_fc1_2)
+		h_flat = tf.reshape(h_conv3, [-1, self.first_dense[0]])
+
+		h_fc1_state  = tf.nn.relu(tf.matmul(h_flat, w_fc1_1)+b_fc1_1)
+		h_fc1_action = tf.nn.relu(tf.matmul(h_flat, w_fc1_2)+b_fc1_2)
 
 		h_fc2_state  = tf.matmul(h_fc1_state,  w_fc2_1)+b_fc2_1
 		h_fc2_action = tf.matmul(h_fc1_action, w_fc2_2)+b_fc2_2
