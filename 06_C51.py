@@ -394,8 +394,8 @@ class C51:
 		terminal_batch   = [batch[4] for batch in minibatch]
 
 		# Training
-		Q_batch = self.Q_action.eval(feed_dict = {self.input: next_state_batch})
-		p_batch = self.p_action_target.eval(feed_dict = {self.input_target: next_state_batch})
+		Q_batch, p_batch = self.sess.run([self.Q_action_target, self.p_action_target],feed_dict = {self.input_target: next_state_batch})		
+		
 		z_batch = self.z.eval()
 
 		m_batch = np.zeros([self.Num_batch, self.Num_atom])
@@ -449,7 +449,7 @@ class C51:
 	def save_model(self):
 		# Save the variables to disk.
 		if self.step == self.Num_Exploration + self.Num_Training:
-		    save_path = self.saver.save(self.sess, 'saved_networks/' + self.game_name + '/' + self.date_time + '_' + self.algorithm + "/model.ckpt")
+		    save_path = self.saver.save(self.sess, 'saved_networks/' + self.game_name + '/' + self.date_time + '_' + self.algorithm + "/mode/model")
 		    print("Model saved in file: %s" % save_path)
 
 	def plotting(self, terminal):
