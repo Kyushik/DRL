@@ -416,6 +416,9 @@ class C51:
 
 			    m_batch[i, l] += (u - b)
 			    m_batch[i, u] += (b - l)
+
+				if l==u:
+					m_batch[i,l] = 1
 			else:
 			    for j in range(self.Num_atom):
 			        Tz = reward_batch[i] + self.gamma * z_batch[0,j]
