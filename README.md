@@ -19,25 +19,17 @@ Performance of each algorithm that I implemented are as follows (verified with `
  I set up the DRL code as follows. 
 
 1. [Human-level Control Through Deep Reinforcement Learning (DQN)](https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf)
-
 2. [Deep Reinforcement Learning with Double Q-Learning (DDQN)](https://arxiv.org/abs/1509.06461) 
-
 3. [Prioritized Experience Replay (PER)](https://arxiv.org/abs/1511.05952) 
-
 4. [Dueling Network Architecture for Deep Reinforcement Learning (Dueling DQN)](https://arxiv.org/abs/1511.06581)
-
 5. [Noisy Networks for Exploration (NoisyNet DQN)](https://arxiv.org/abs/1706.10295) 
-
 6. [A Distributional Perspective on Reinforcement Learning (C51)](https://arxiv.org/abs/1707.06887) 
 7. [Learning to Predict by the Methods of Temporal Differences (N-step DQN)](http://incompleteideas.net/papers/sutton-88-with-erratum.pdf) 
-
 8. [Deep Recurrent Q-Learning for Partially Observable MDPs (DRQN)](https://arxiv.org/abs/1507.06527) 
-
 9. [Distributional Reinforcement Learning with Quantile Regression(QR-DQN)](https://arxiv.org/abs/1710.10044)
-
 10. [Implicit Quantile Networks for Distributional Reinforcement Learning(IQN)](https://arxiv.org/abs/1806.06923)
-
 11. [Curiosity-driven Exploration by Self-supervised Prediction (ICM)](https://arxiv.org/abs/1705.05363)
+12. [Exploration by Random Network Distillation(RND)](https://arxiv.org/abs/1810.12894)
 
 
 This is the [PPT file](https://www.dropbox.com/s/0o72oqe7f5kip4z/DQN.pdf?dl=0) for the `description of DQN codes` that I implemented. 
