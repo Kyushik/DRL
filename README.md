@@ -12,11 +12,15 @@ Performance of each algorithm that I implemented are as follows (verified with `
 
 ![Performance](./Image/Performance.png)
 
+
+
+![Result](./Image/breakout.gif)
+
 [Youtube Link of Playing Breakout with NoisyNet DQN](https://youtu.be/h8UtVZ5XCtY)
 
 
 
- I set up the DRL code as follows. 
+ **I set up the DRL code as follows.** 
 
 1. [Human-level Control Through Deep Reinforcement Learning (DQN)](https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf)
 2. [Deep Reinforcement Learning with Double Q-Learning (DDQN)](https://arxiv.org/abs/1509.06461) 
