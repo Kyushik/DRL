@@ -16,23 +16,23 @@ sys.path.append("DQN_GAMES/")
 import Parameters
 game = Parameters.game
 
-class Curiosity_DQN:
+class RND_DQN:
 	def __init__(self):
 
 		# Game Information
-		self.algorithm = 'Curiosity_DQN'
+		self.algorithm = 'RND_DQN'
 		self.game_name = game.ReturnName()
 
 		# Get parameters
 		self.progress = ''
 		self.Num_action = game.Return_Num_Action()
 
-		# Parameters for Curiosity-driven Exploration
+		# Parameters for RND
 		self.beta = 0.2
 		self.lamb = 1.0
 		self.eta = 0.01
 		self.extrinsic_coeff = 1.0
-		self.intrinsic_coeff = 0.01
+		self.intrinsic_coeff = 0.001
 
 		# Initial parameters
 		self.Num_Exploration = Parameters.Num_start_training
@@ -87,7 +87,7 @@ class Curiosity_DQN:
 		self.score_board = 0
 		self.maxQ_board  = 0
 		self.loss_board  = 0
-		self.r_i_board   = 0
+		self.r_i_board = 0
 
 		self.step_old    = 0
 		self.episode_old = 0
@@ -95,7 +95,7 @@ class Curiosity_DQN:
 		# Initialize Network
 		self.input, self.output = self.network('network')
 		self.input_target, self.output_target = self.network('target')
-		self.s_current, self.s_next, self.a_t, self.r_i, self.Lf, self.Li = self.ICM()
+		self.s_next, self.r_i, self.Lf = self.RND()
 		self.train_step, self.action_target, self.y_target, self.loss_train = self.loss_and_train()
 
 		self.sess, self.saver, self.summary_placeholders, self.update_ops, self.summary_op, self.summary_writer = self.init_sess()
@@ -122,7 +122,7 @@ class Curiosity_DQN:
 
 			reward = r_e
 			r_i = 0.
-
+			
 			# Experience Replay
 			self.experience_replay(stacked_state, action, reward, stacked_next_state, terminal)
 
@@ -308,16 +308,9 @@ class Curiosity_DQN:
 		output = tf.matmul(h_fc1, w_fc2) + b_fc2
 		return x_image, output
 
-	# Intrinsic Curiosity Module
-	def ICM(self):
+	# RND Module
+	def RND(self):
 		# Input
-		s_current = tf.placeholder(tf.float32, shape = [None,
-													    self.img_size,
-													    self.img_size,
-													    self.Num_stacking * self.Num_colorChannel])
-
-		s_current = (s_current - (255.0/2)) / (255.0/2)
-
 		s_next = tf.placeholder(tf.float32, shape = [None,
 												     self.img_size,
 												     self.img_size,
@@ -325,7 +318,7 @@ class Curiosity_DQN:
 
 		s_next = (s_next - (255.0/2)) / (255.0/2)
 
-		with tf.variable_scope('curiosity'):
+		with tf.variable_scope('curiosity_predict'):
 			# Convolution variables
 			w_conv1 = self.conv_weight_variable('_w_conv1', [3,3,self.Num_stacking * self.Num_colorChannel,32])
 			b_conv1 = self.bias_variable('_b_conv1',[32])
@@ -339,46 +332,41 @@ class Curiosity_DQN:
 			w_conv4 = self.conv_weight_variable('_w_conv4', [3,3,32,32])
 			b_conv4 = self.bias_variable('_b_conv4',[32])
 
+		with tf.variable_scope('curiosity_target'):
+			# Convolution variables
+			w_conv1_t = self.conv_weight_variable('_w_conv1', [3,3,self.Num_stacking * self.Num_colorChannel,32])
+			b_conv1_t = self.bias_variable('_b_conv1',[32])
+
+			w_conv2_t = self.conv_weight_variable('_w_conv2', [3,3,32,32])
+			b_conv2_t = self.bias_variable('_b_conv2',[32])
+
+			w_conv3_t = self.conv_weight_variable('_w_conv3', [3,3,32,32])
+			b_conv3_t = self.bias_variable('_b_conv3',[32])
+
+			w_conv4_t = self.conv_weight_variable('_w_conv4', [3,3,32,32])
+			b_conv4_t = self.bias_variable('_b_conv4',[32])
+
 		# Feature Vector
-		s_conv1 = tf.nn.elu(self.conv2d(s_current, w_conv1, 2) + b_conv1)
-		s_conv2 = tf.nn.elu(self.conv2d(s_conv1, w_conv2, 2) + b_conv2)
-		s_conv3 = tf.nn.elu(self.conv2d(s_conv2, w_conv3, 2) + b_conv3)
-		s_conv4 = tf.nn.elu(self.conv2d(s_conv3, w_conv4, 2) + b_conv4)
+		conv1 = tf.nn.elu(self.conv2d(s_next, w_conv1, 2) + b_conv1)
+		conv2 = tf.nn.elu(self.conv2d(conv1, w_conv2, 2) + b_conv2)
+		conv3 = tf.nn.elu(self.conv2d(conv2, w_conv3, 2) + b_conv3)
+		conv4 = tf.nn.elu(self.conv2d(conv3, w_conv4, 2) + b_conv4)
 			
-		s_conv4_flat_dim = s_conv4.shape[1]*s_conv4.shape[2]*s_conv4.shape[3]
-		s_conv4_flat = tf.reshape(s_conv4, [tf.shape(s_conv4)[0], s_conv4_flat_dim])
+		conv4_flat = tf.layers.flatten(conv4)
 
-		s_next_conv1 = tf.nn.elu(self.conv2d(s_next, w_conv1, 2) + b_conv1)
-		s_next_conv2 = tf.nn.elu(self.conv2d(s_next_conv1, w_conv2, 2) + b_conv2)
-		s_next_conv3 = tf.nn.elu(self.conv2d(s_next_conv2, w_conv3, 2) + b_conv3)
-		s_next_conv4 = tf.nn.elu(self.conv2d(s_next_conv3, w_conv4, 2) + b_conv4)
+		conv1_t = tf.nn.elu(self.conv2d(s_next, w_conv1_t, 2) + b_conv1_t)
+		conv2_t = tf.nn.elu(self.conv2d(conv1_t, w_conv2_t, 2) + b_conv2_t)
+		conv3_t = tf.nn.elu(self.conv2d(conv2_t, w_conv3_t, 2) + b_conv3_t)
+		conv4_t = tf.nn.elu(self.conv2d(conv3_t, w_conv4_t, 2) + b_conv4_t)
 
-		s_next_conv4_flat_dim = s_next_conv4.shape[1]*s_next_conv4.shape[2]*s_next_conv4.shape[3]
-		s_next_conv4_flat = tf.reshape(s_next_conv4, [tf.shape(s_next_conv4)[0], s_next_conv4_flat_dim])
+		conv4_t_flat = tf.layers.flatten(conv4_t)
 
-		# Forward Model
-		a_t = tf.placeholder(tf.float32, shape = [None, self.Num_action])
+		# Intrinsic Reward
+		r_i = (self.eta * 0.5) * tf.reduce_sum(tf.square(tf.subtract(conv4_flat, conv4_t_flat)), axis = 1)
 
-		input_forward = tf.concat([s_conv4_flat, a_t], 1)
+		Lf = tf.losses.mean_squared_error(conv4_flat, conv4_t_flat)
 
-		forward_fc1 = tf.layers.dense(input_forward, 256, activation=tf.nn.relu)
-		forward_fc1 = tf.concat([forward_fc1, a_t], 1)
-
-		forward_fc2 = tf.layers.dense(forward_fc1, s_next_conv4_flat.shape[1], activation=None)
-
-		r_i = (self.eta * 0.5) * tf.reduce_sum(tf.square(tf.subtract(forward_fc2, s_next_conv4_flat)), axis = 1)
-
-		Lf = tf.losses.mean_squared_error(forward_fc2, s_next_conv4_flat)
-
-		# Inverse Model
-		input_inverse = tf.concat([s_conv4_flat, s_next_conv4_flat], 1)
-
-		inverse_fc1 = tf.layers.dense(input_inverse, 256, activation=tf.nn.relu)
-		inverse_fc2 = tf.layers.dense(inverse_fc1, self.Num_action, activation=tf.nn.softmax)
-
-		Li = tf.losses.softmax_cross_entropy(a_t, inverse_fc2)
-
-		return s_current, s_next, a_t, r_i, Lf, Li
+		return s_next, r_i, Lf
 
 	def loss_and_train(self):
 		# Loss function and Train
@@ -387,8 +375,15 @@ class Curiosity_DQN:
 
 		y_prediction = tf.reduce_sum(tf.multiply(self.output, action_target), reduction_indices = 1)
 
-		Loss = self.lamb * tf.reduce_mean(tf.square(y_prediction - y_target)) + (self.beta * self.Lf) + ((1-self.beta) * self.Li)
-		train_step = tf.train.AdamOptimizer(learning_rate = self.learning_rate, epsilon = 1e-02).minimize(Loss)
+		Loss = self.lamb * tf.reduce_mean(tf.square(y_prediction - y_target)) + (self.beta * self.Lf)
+
+		trainable_variables = tf.trainable_variables()
+		trainable_var_network = [var for var in trainable_variables if var.name.startswith('network')]
+		trainable_var_predict = [var for var in trainable_variables if var.name.startswith('curiosity_predict')]
+
+		train_vars = trainable_var_network + trainable_var_predict
+
+		train_step = tf.train.AdamOptimizer(learning_rate = self.learning_rate, epsilon = 1e-02).minimize(Loss, var_list=train_vars)
 
 		return train_step, action_target, y_target, Loss
 
@@ -452,7 +447,7 @@ class Curiosity_DQN:
 		y_batch = []
 		Q_batch = self.output_target.eval(feed_dict = {self.input_target: next_state_batch})
 
-		r_i = self.sess.run(self.r_i, feed_dict = {self.s_current: state_batch, self.s_next: next_state_batch, self.a_t: action_batch})
+		r_i = self.sess.run(self.r_i, feed_dict = {self.s_next: next_state_batch})
 		
 		for i in range(len(reward_batch)):
 			reward_batch[i] = (self.extrinsic_coeff * reward_batch[i]) + (self.intrinsic_coeff * r_i[i])
@@ -467,10 +462,8 @@ class Curiosity_DQN:
 		_, self.loss = self.sess.run([self.train_step, self.loss_train], feed_dict = {self.action_target: action_batch,
 																					  self.y_target: y_batch,
 																					  self.input: state_batch,
-																					  self.s_current: state_batch,
-																					  self.s_next: next_state_batch,
-																					  self.a_t: action_batch})
-																					  
+																					  self.s_next: next_state_batch})
+
 		return np.mean(self.intrinsic_coeff * r_i)
 
 	def save_model(self):
@@ -506,6 +499,8 @@ class Curiosity_DQN:
 
 				self.step_old = self.step
 				self.episode_old = self.episode
+		else:
+			self.step_old = self.step
 
 	def if_terminal(self, game_state):
 		# Show Progress
@@ -525,5 +520,5 @@ class Curiosity_DQN:
 		return stacked_state
 
 if __name__ == '__main__':
-	agent = Curiosity_DQN()
+	agent = RND_DQN()
 	agent.main()
