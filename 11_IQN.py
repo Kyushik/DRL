@@ -29,6 +29,7 @@ class IQN:
 
 		# Parameter for IQN
 		self.Num_quantile = 51
+		self.Num_quantile_target = 51
 		self.embedding_dim = 64
 
 		# Parameter for risk sensitive policy
@@ -102,8 +103,8 @@ class IQN:
 		self.episode_old = 0
 
 		# Initialize Network
-		self.input, self.Q_action, self.logits, self.sample = self.network('network')
-		self.input_target, self.Q_action_target, self.logits_target, _ = self.network('target')
+		self.input, self.Q_action, self.logits, self.sample, self.tau_min, self.tau_max, self.num_sample = self.network('network')
+		self.input_target, self.Q_action_target, self.logits_target, _, self.tau_min_target, self.tau_max_target, self.num_sample_target = self.network('target')
 		self.train_step, self.theta_target, self.action_binary_loss, self.loss_train = self.loss_and_train()
 		self.sess, self.saver, self.summary_placeholders, self.update_ops, self.summary_op, self.summary_writer = self.init_sess()
 
@@ -279,6 +280,11 @@ class IQN:
 													  self.img_size,
 													  self.Num_stacking * self.Num_colorChannel])
 
+		tau_min = tf.placeholder(tf.float32)
+		tau_max = tf.placeholder(tf.float32)
+
+		num_sample = tf.placeholder(tf.int32)
+
 		x_normalize = (x_image - (255.0/2)) / (255.0/2)
 
 		with tf.variable_scope(network_name):
@@ -305,7 +311,7 @@ class IQN:
 
 		# Embedding 
 		batch_size = tf.shape(x_normalize)[0]
-		sample = tf.random_uniform([batch_size * self.Num_quantile, 1], minval = self.sample_min, maxval = self.sample_max, dtype = tf.float32)
+		sample = tf.random_uniform([batch_size * num_sample, 1], minval = tau_min, maxval = tau_max, dtype = tf.float32)
 		sample_tile = tf.tile(sample, [1, self.embedding_dim])
 
 		embedding = tf.cos(tf.cast(tf.range(0, self.embedding_dim, 1), tf.float32) * np.pi * sample_tile)
@@ -319,21 +325,21 @@ class IQN:
 		h_flat = tf.reshape(h_conv3, [-1, self.first_dense[0]])
 
 		# Embedding
-		h_flat_tile = tf.tile(h_flat, [self.Num_quantile, 1])
+		h_flat_tile = tf.tile(h_flat, [num_sample, 1])
 		h_flat_embedding = tf.multiply(h_flat_tile, embedding_out)
 
 		h_fc1 = tf.nn.relu(tf.matmul(h_flat_embedding, w_fc1)+b_fc1)
 
 		# Get Q value for each action
 		logits = tf.matmul(h_fc1, w_fc2) + b_fc2
-		logits_reshape = tf.reshape(logits, [self.Num_quantile, batch_size, self.Num_action])
+		logits_reshape = tf.reshape(logits, [num_sample, batch_size, self.Num_action])
 		Q_action = tf.reduce_mean(logits_reshape, axis = 0)
 
-		return x_image, Q_action, logits_reshape, sample
+		return x_image, Q_action, logits_reshape, sample, tau_min, tau_max, num_sample
 
 	def loss_and_train(self):
 		# Loss function and Train
-		theta_target = tf.placeholder(tf.float32, shape = [None, self.Num_quantile])
+		theta_target = tf.placeholder(tf.float32, shape = [None, self.Num_quantile_target])
 		action_binary_loss = tf.placeholder(tf.float32, shape = [self.Num_quantile, None, self.Num_action])
 		
 		# Get valid logits (extracting output with respect to action batch)
@@ -341,7 +347,7 @@ class IQN:
 
 		# Tile the target and prediction to calculate all i and j 
 		theta_target_tile = tf.tile(tf.expand_dims(theta_target, axis=0), [self.Num_quantile, 1, 1])
-		theta_pred_tile   = tf.tile(tf.expand_dims(theta_pred, axis=2), [1, 1, self.Num_quantile])
+		theta_pred_tile   = tf.tile(tf.expand_dims(theta_pred, axis=2), [1, 1, self.Num_quantile_target])
 		
 		error_loss = theta_target_tile - theta_pred_tile
 
@@ -350,11 +356,12 @@ class IQN:
 
 		# Get tau
 		tau = tf.reshape (self.sample, [self.Num_quantile, -1, 1])
+		tau = tf.tile(tau, [1, 1, self.Num_quantile_target])
 		inv_tau = 1.0 - tau 
 
 		# Get Loss
 		Loss = tf.where(tf.less(error_loss, 0.0), inv_tau * Huber_loss, tau * Huber_loss)
-		Loss = tf.reduce_mean(tf.reduce_sum(tf.reduce_mean(Loss, axis = 0), axis = 1))
+		Loss = tf.reduce_mean(tf.reduce_sum(tf.reduce_mean(Loss, axis = -1), axis = 0))
 		
 		train_step = tf.train.AdamOptimizer(learning_rate = self.learning_rate, epsilon = 1e-02/self.Num_batch).minimize(Loss)
 
@@ -377,7 +384,8 @@ class IQN:
 				action[action_index] = 1
 			else:
 				# Choose greedy action
-				Q_value = self.Q_action.eval(feed_dict={self.input: [stacked_state]})
+				Q_value = self.Q_action.eval(feed_dict={self.input: [stacked_state], self.tau_min: self.sample_min, 
+				                                        self.tau_max: self.sample_max, self.num_sample: self.Num_quantile})
 				action_index = np.argmax(Q_value)
 				action[action_index] = 1
 				self.maxQ = np.max(Q_value)
@@ -388,7 +396,8 @@ class IQN:
 
 		elif self.progress == 'Testing':
 			# Choose greedy action
-			Q_value = self.Q_action.eval(feed_dict={self.input: [stacked_state]})
+			Q_value = self.Q_action.eval(feed_dict={self.input: [stacked_state], self.tau_min: self.sample_min, 
+			                                        self.tau_max: self.sample_max, self.num_sample: self.Num_quantile})
 			action_index = np.argmax(Q_value)
 			action[action_index] = 1
 			self.maxQ = np.max(Q_value)
@@ -428,14 +437,15 @@ class IQN:
 		terminal_batch   = [batch[4] for batch in minibatch]
 
 		# Get Target
-		Q_batch = self.Q_action.eval(feed_dict = {self.input: next_state_batch})
-		theta_batch = self.logits_target.eval(feed_dict = {self.input_target: next_state_batch})
+		Q_batch = self.Q_action.eval(feed_dict = {self.input: next_state_batch, self.tau_min: 0.0, self.tau_max: 1.0, self.num_sample: self.Num_quantile})
+		theta_batch = self.logits_target.eval(feed_dict = {self.input_target: next_state_batch, self.tau_min_target: 0.0, 
+		                                                   self.tau_max_target: 1.0, self.num_sample_target: self.Num_quantile_target})
 
 		theta_target = []
 
 		for i in range(len(minibatch)):
 			theta_target.append([])
-			for j in range(self.Num_quantile):
+			for j in range(self.Num_quantile_target):
 				if terminal_batch[i] == True:
 					theta_target[i].append(reward_batch[i])
 				else:
@@ -451,8 +461,10 @@ class IQN:
 		# Training!! 
 		_, self.loss = self.sess.run([self.train_step, self.loss_train],
 										feed_dict = {self.input: state_batch, 
-													self.theta_target: theta_target, 
-													self.action_binary_loss: action_binary})
+													 self.theta_target: theta_target, 
+													 self.action_binary_loss: action_binary,
+													 self.tau_min: 0.0, self.tau_max: 1.0,
+													 self.num_sample: self.Num_quantile})
 
 	def save_model(self):
 		# Save the variables to disk.
