@@ -304,7 +304,8 @@ class Dueling_DQN:
 		h_fc2_state  = tf.matmul(h_fc1_state,  w_fc2_1)+b_fc2_1
 		h_fc2_action = tf.matmul(h_fc1_action, w_fc2_2)+b_fc2_2
 
-		h_fc2_advantage = tf.subtract(h_fc2_action, tf.reduce_mean(h_fc2_action))
+		h_fc2_action_mean = tf.tile(tf.reduce_mean(h_fc2_action, axis=-1, keepdims=True), [1, self.Num_action])
+		h_fc2_advantage = tf.subtract(h_fc2_action, h_fc2_action_mean)
 
 		output = tf.add(h_fc2_state, h_fc2_advantage)
 
